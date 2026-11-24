@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sunset Pontoon Cruise — Boat Guy &amp; Cavalier 3D Video</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0b101b; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+    canvas:active { cursor: grabbing; }
+    #hud {
+      position: fixed; bottom: 16px; left: 16px; right: 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      pointer-events: none; z-index: 10;
+    }
+    .hud-pill {
+      pointer-events: auto; display: inline-flex; align-items: center; gap: 8px;
+      padding: 7px 12px; border-radius: 999px; font-size: 12px; font-weight: 500;
+      color: #f8fafc; background: rgba(15, 23, 42, 0.72); border: 1px solid rgba(255,255,255,0.16);
+      backdrop-filter: blur(8px); text-decoration: none; cursor: pointer;
+    }
+    .hud-pill:hover { border-color: #60a5fa; background: rgba(30, 41, 59, 0.88); }
+    .capture-mode #hud { display: none !important; }
+  </style>
+</head>
+<body>
+  <canvas id="glCanvas"></canvas>
+  <div id="hud">
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button id="btnPlay" class="hud-pill">Pause Cruise</button>
+      <button id="btnCam" class="hud-pill">Camera: Auto Cinema</button>
+      <span id="timeLabel" class="hud-pill" style="font-variant-numeric:tabular-nums; cursor:default;">0.0s / 10.0s</span>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <a href="./output/boat-cruise.mp4" download class="hud-pill" style="background:rgba(59,130,246,0.85); border-color:#60a5fa;">Download .MP4</a>
+      <a href="./index.html" class="hud-pill">Back to 3D Studio</a>
+    </div>
+  </div>
+
+  <script src="./meshEngine.js"></script>
+  <script src="./buildModel.js"></script>
+  <script>
+  (function () {
+    const params = new URLSearchParams(location.search);
+    const isCapture = params.get('capture') === '1';
+    if (isCapture) document.body.classList.add('capture-mode');
+
+    const canvas = document.getElementById('glCanvas');
+    const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, preserveDrawingBuffer: true });
+    if (!gl) { document.body.innerHTML = '<p style="color:#fff;padding:24px;">WebGL2 unavailable</p>'; return; }
+
+    function compile(type, src) {
+      const sh = gl.createShader(type);
+      gl.shaderSource(sh, src);
+      gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
+      return sh;
+    }
+    function makeProgram(vs, fs) {
+      const p = gl.createProgram();
+      gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+      gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+      gl.linkProgram(p);
+      return p;
+    }
+
+    // ==================== 1. SKY & WATER SHADERS ====================
+    const progSky = makeProgram(
+      `#version 300 es
+      precision highp float;
+      layout(location=0) in vec2 aNDC;
+      uniform mat4 uInvVP;
+      out vec3 vRayDir;
+      void main() {
+        vec4 farPt = uInvVP * vec4(aNDC, 1.0, 1.0);
+        vec4 nearPt = uInvVP * vec4(aNDC, -1.0, 1.0);
+        vRayDir = farPt.xyz / farPt.w - nearPt.xyz / nearPt.w;
+        gl_Position = vec4(aNDC, 0.9999, 1.0);
+      }`,
+      `#version 300 es
+      precision highp float;
+      in vec3 vRayDir;
+      uniform vec3 uSunDir;
+      uniform float uTime;
+      out vec4 fragColor;
+
+      float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float noise(vec2 p) {
+        vec2 i = floor(p), f = fract(p);
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1,0)), u.x), mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), u.x), u.y);
+      }
+      float fbm(vec2 p) {
+        float v = 0.0, a = 0.5;
+        for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.05; a *= 0.5; }
+        return v;
+      }
+
+      void main() {
+        vec3 d = normalize(vRayDir);
+        float h = clamp(d.y, -0.05, 1.0);
+        // Golden hour gradient (inspired by Photo 3!)
+        vec3 zenith  = vec3(0.16, 0.28, 0.52);
+        vec3 midSky  = vec3(0.50, 0.56, 0.72);
+        vec3 horizon = vec3(0.98, 0.72, 0.46);
+        vec3 sky = mix(horizon, midSky, smoothstep(0.0, 0.28, h));
+        sky = mix(sky, zenith, smoothstep(0.24, 0.85, h));
+
+        // Sun glow & crisp sun disc
+        float sDot = max(dot(d, normalize(uSunDir)), 0.0);
+        sky += vec3(1.0, 0.62, 0.25) * pow(sDot, 8.0) * 0.55;
+        sky += vec3(1.0, 0.86, 0.56) * pow(sDot, 90.0) * 0.85;
+        float disc = smoothstep(0.9986, 0.9994, sDot);
+        sky = mix(sky, vec3(1.0, 0.96, 0.85), disc);
+
+        // Soft drifting sunset clouds
+        if (d.y > 0.03) {
+          vec2 cuv = d.xz / (d.y + 0.18) * 1.1 + vec2(uTime * 0.008, -uTime * 0.012);
+          float c = fbm(cuv);
+          float cloudMask = smoothstep(0.46, 0.78, c) * smoothstep(0.03, 0.16, d.y) * smoothstep(0.92, 0.25, d.y);
+          vec3 cloudCol = mix(vec3(0.82, 0.74, 0.76), vec3(1.0, 0.78, 0.55), pow(sDot, 2.0));
+          sky = mix(sky, cloudCol, cloudMask * 0.68);
+        }
+        fragColor = vec4(sky, 1.0);
+      }`
+    );
+
+    const progWater = makeProgram(
+      `#version 300 es
+      precision highp float;
+      layout(location=0) in vec3 aPos;
+      uniform mat4 uVP;
+      out vec3 vWorldPos;
+      void main() {
+        vWorldPos = aPos;
+        gl_Position = uVP * vec4(aPos, 1.0);
+      }`,
+      `#version 300 es
+      precision highp float;
+      in vec3 vWorldPos;
+      uniform vec3 uCamPos;
+      uniform vec3 uSunDir;
+      uniform float uTime;
+      out vec4 fragColor;
+
+      float waveHeight(vec2 p, float t) {
+        float w = sin(p.x * 2.4 + p.y * 1.5 - t * 3.8) * 0.018;
+        w += sin(p.x * -3.8 + p.y * 2.9 - t * 4.9) * 0.011;
+        w += cos(p.x * 6.5 + p.y * 5.2 - t * 6.4) * 0.006;
+        w += sin(p.x * 12.0 - p.y * 9.5 - t * 7.2) * 0.003;
+        return w;
+      }
+
+      void main() {
+        // Scroll water backward along -Z as boat moves forward along +Z
+        vec2 wp = vWorldPos.xz + vec2(0.0, -uTime * 4.8);
+        float e = 0.06;
+        float h0 = waveHeight(wp, uTime);
+        float hx = waveHeight(wp + vec2(e, 0.0), uTime);
+        float hz = waveHeight(wp + vec2(0.0, e), uTime);
+        vec3 N = normalize(vec3(h0 - hx, e * 1.4, h0 - hz));
+        vec3 V = normalize(uCamPos - vWorldPos);
+        vec3 L = normalize(uSunDir);
+
+        float fres = pow(1.0 - max(dot(N, V), 0.0), 4.0);
+        vec3 R = reflect(-V, N);
+        float rSun = max(dot(R, L), 0.0);
+
+        vec3 deepWater = vec3(0.07, 0.16, 0.22);
+        vec3 skyRefl   = mix(vec3(0.32, 0.42, 0.56), vec3(0.95, 0.68, 0.42), pow(max(dot(R, L), 0.0), 2.5));
+        vec3 col = mix(deepWater, skyRefl, clamp(0.18 + fres * 0.78, 0.0, 0.92));
+
+        // Shimmering golden sun reflection path on lake water
+        col += vec3(1.0, 0.78, 0.44) * pow(rSun, 65.0) * 1.65;
+        col += vec3(1.0, 0.60, 0.28) * pow(rSun, 10.0) * 0.35;
+
+        // V-shaped frothy bow wake + stern prop wash around the pontoon boat!
+        vec2 p = vWorldPos.xz;
+        float bowZ = 1.65 - p.y;
+        float wakeLine = abs(abs(p.x) - (0.80 + max(0.0, bowZ) * 0.44));
+        float bowMask = step(0.0, bowZ) * smoothstep(9.0, 0.2, bowZ);
+        float wakeFoam = smoothstep(0.32, 0.03, wakeLine) * bowMask;
+        // Twin pontoon trail + prop churn directly behind stern (z < -1.5)
+        float sternMask = smoothstep(-1.3, -2.0, p.y) * smoothstep(-9.5, -2.2, p.y);
+        float propBand = smoothstep(0.50, 0.05, abs(p.x)) * sternMask;
+        float foamNoise = 0.58 + 0.42 * sin(p.y * 8.5 - uTime * 14.0 + p.x * 7.0) * cos(p.x * 11.0 + uTime * 8.0);
+        float totalFoam = clamp((wakeFoam * 0.85 + propBand * 0.90) * foamNoise, 0.0, 1.0);
+        col = mix(col, vec3(0.95, 0.96, 0.98), totalFoam * 0.85);
+
+        // Distance horizon haze blend
+        float dist = length(vWorldPos.xz);
+        float fog = smoothstep(14.0, 42.0, dist);
+        vec3 fogCol = mix(vec3(0.55, 0.56, 0.68), vec3(0.96, 0.70, 0.46), pow(max(dot(normalize(vec3(vWorldPos.x, 0.0, vWorldPos.z)), L), 0.0), 3.0));
+        col = mix(col, fogCol, fog);
+
+        fragColor = vec4(col, 1.0);
+      }`
+    );
+
+    // ==================== 2. PBR SOLID MESH SHADER ====================
+    const progMesh = makeProgram(
+      `#version 300 es
+      precision highp float;
+      layout(location=0) in vec3 aPos;
+      layout(location=1) in vec3 aNorm;
+      uniform mat4 uVP;
+      uniform mat4 uModel;
+      out vec3 vPos;
+      out vec3 vNorm;
+      void main() {
+        vec4 wp = uModel * vec4(aPos, 1.0);
+        vPos = wp.xyz;
+        vNorm = normalize(mat3(uModel) * aNorm);
+        gl_Position = uVP * wp;
+      }`,
+      `#version 300 es
+      precision highp float;
+      in vec3 vPos;
+      in vec3 vNorm;
+      uniform vec3 uCamPos;
+      uniform vec3 uSunDir;
+      uniform vec3 uBaseColor;
+      uniform float uRoughness;
+      uniform float uMetalness;
+      out vec4 fragColor;
+      vec3 aces(vec3 x) {
+        return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+      }
+      void main() {
+        vec3 N = normalize(gl_FrontFacing ? vNorm : -vNorm);
+        vec3 V = normalize(uCamPos - vPos);
+        vec3 albedo = pow(uBaseColor, vec3(2.2));
+        vec3 F0 = mix(vec3(0.04), albedo, uMetalness);
+        float shininess = mix(96.0, 8.0, clamp(uRoughness, 0.08, 1.0));
+
+        // Warm golden-hour fill from front-starboard + rich sunset rim from sun direction
+        vec3 keyDir  = normalize(vec3(0.55, 0.65, 0.72));
+        vec3 keyCol  = vec3(1.42, 1.24, 1.02);
+        vec3 fillDir = normalize(vec3(-0.70, 0.35, 0.55));
+        vec3 fillCol = vec3(0.46, 0.56, 0.78);
+        vec3 rimDir  = normalize(uSunDir);
+        vec3 rimCol  = vec3(1.35, 0.78, 0.38);
+
+        float hemi = N.y * 0.5 + 0.5;
+        float ao = smoothstep(0.02, 0.25, vPos.y) * 0.20 + 0.80;
+        vec3 color = albedo * (1.0 - uMetalness * 0.68) * mix(vec3(0.20, 0.16, 0.14), vec3(0.40, 0.45, 0.56), hemi) * ao;
+
+        float ndlK = max(dot(N, keyDir), 0.0);
+        vec3 Hk = normalize(keyDir + V);
+        float specK = pow(max(dot(N, Hk), 0.0), shininess) * (1.0 - uRoughness * 0.65);
+        color += (albedo * (1.0 - uMetalness) * ndlK + F0 * specK * 1.35) * keyCol;
+
+        float ndlF = max(dot(N, fillDir), 0.0);
+        color += albedo * (1.0 - uMetalness) * ndlF * fillCol * 0.72;
+
+        float fres = pow(1.0 - max(dot(N, V), 0.0), 3.2);
+        float ndlR = max(dot(N, rimDir), 0.0);
+        color += (albedo * 0.30 + F0 * 0.70) * (ndlR * 0.45 + fres * 0.60) * rimCol;
+
+        color = pow(aces(color), vec3(1.0 / 2.2));
+        fragColor = vec4(color, 1.0);
+      }`
+    );
+
+    // ==================== 3. BUILD BOAT, CREW & SCENERY ====================
+    const crewAll = buildBoatGuyModel(MeshEngine);
+    // Keep guy (body, cap, sunglasses), helm, and dog (no base circular pedestal)
+    const crewParts = crewAll.filter(p => p.group !== 'base' && p.group !== 'hair');
+
+    // Build full Pontoon Boat around the exact standing/helm/dog coordinates!
+    const boatMB = new MeshEngine.MeshBuilder();
+    const BM = {
+      aluminum:  { color: '#c4cad2', roughness: 0.26, metalness: 0.86 },
+      alumDark:  { color: '#6b7380', roughness: 0.35, metalness: 0.72 },
+      teak:      { color: '#8f623d', roughness: 0.62, metalness: 0.0 },
+      teakDark:  { color: '#5c3c22', roughness: 0.72, metalness: 0.0 },
+      hullWhite: { color: '#ecebe6', roughness: 0.40, metalness: 0.05 },
+      navyTrim:  { color: '#1d2b48', roughness: 0.42, metalness: 0.08 },
+      seatCream: { color: '#f3f1ea', roughness: 0.45, metalness: 0.0 },
+      seatShade: { color: '#dcd7cc', roughness: 0.55, metalness: 0.0 },
+      windGlass: { color: '#1b2b3b', roughness: 0.12, metalness: 0.30 },
+      engineBlk: { color: '#1d2026', roughness: 0.30, metalness: 0.45 },
+      cupRed:    { color: '#c92e2e', roughness: 0.35, metalness: 0.0 },
+      spray:     { color: '#f2f6fa', roughness: 0.30, metalness: 0.0 },
+      treeDark:  { color: '#1f3622', roughness: 0.88, metalness: 0.0 },
+      treeMid:   { color: '#2b472b', roughness: 0.86, metalness: 0.0 },
+      shore:     { color: '#3b3328', roughness: 0.90, metalness: 0.0 },
+    };
+
+    // Twin Aluminum Pontoons (x = ±0.80, pointed bow at z = +1.76)
+    for (const side of [-1, 1]) {
+      boatMB.addTube(`pontoon_${side}`, 'boat', BM.aluminum, [
+        [side * 0.80, -0.02, -1.62],
+        [side * 0.80, -0.02, -1.48],
+        [side * 0.80, -0.02,  1.25],
+        [side * 0.80,  0.00,  1.56],
+        [side * 0.80,  0.03,  1.78],
+      ], [0.15, 0.19, 0.19, 0.14, 0.02], { segs: 18 });
+      // Support risers up to deck
+      for (const rz of [-1.25, -0.45, 0.35, 1.15]) {
+        boatMB.addRoundedBox(`riser_${side}_${rz}`, 'boat', BM.alumDark, 0.10, 0.12, 0.08, {
+          x: side * 0.80, y: 0.05, z: rz, segU: 8, segV: 6,
+        });
+      }
+    }
+
+    // Teak Pontoon Boat Deck (top flush at y = 0.09 where Guy & Cavalier stand!)
+    boatMB.addRoundedBox('boat_deck', 'boat', BM.teak, 1.98, 0.06, 3.12, {
+      x: 0, y: 0.06, z: -0.04, segU: 16, segV: 10, power: 0.18,
+    });
+    for (let px = -0.84; px <= 0.85; px += 0.168) {
+      boatMB.addRoundedBox(`plank_${px.toFixed(2)}`, 'boat', BM.teakDark, 0.012, 0.008, 3.04, {
+        x: px, y: 0.090, z: -0.04, segU: 6, segV: 4, power: 0.15,
+      });
+    }
+    // Aluminum perimeter rub-rail
+    boatMB.addRoundedBox('rubrail_L', 'boat', BM.aluminum, 0.04, 0.07, 3.14, { x: 1.00, y: 0.06, z: -0.04, segU: 8, segV: 6 });
+    boatMB.addRoundedBox('rubrail_R', 'boat', BM.aluminum, 0.04, 0.07, 3.14, { x: -1.00, y: 0.06, z: -0.04, segU: 8, segV: 6 });
+    boatMB.addRoundedBox('rubrail_bow', 'boat', BM.aluminum, 2.02, 0.07, 0.04, { x: 0, y: 0.06, z: 1.53, segU: 8, segV: 6 });
+    boatMB.addRoundedBox('rubrail_stern', 'boat', BM.aluminum, 2.02, 0.07, 0.04, { x: 0, y: 0.06, z: -1.61, segU: 8, segV: 6 });
+
+    // Pontoon Side Fencing + Navy Accent Stripe + Stainless Top Rails
+    for (const side of [-1, 1]) {
+      boatMB.addRoundedBox(`fence_${side}`, 'boat', BM.hullWhite, 0.045, 0.42, 2.95, {
+        x: side * 0.95, y: 0.30, z: -0.06, segU: 10, segV: 8, power: 0.22,
+      });
+      boatMB.addRoundedBox(`stripe_${side}`, 'boat', BM.navyTrim, 0.052, 0.11, 2.88, {
+        x: side * 0.95, y: 0.26, z: -0.06, segU: 8, segV: 6, power: 0.20,
+      });
+      // Stainless tubular top rail
+      boatMB.addTube(`rail_${side}`, 'boat', BM.aluminum, [
+        [side * 0.95, 0.56, -1.52], [side * 0.95, 0.56, 1.42],
+      ], [0.016, 0.016], { segs: 10 });
+      for (const pz of [-1.50, -0.55, 0.42, 1.40]) {
+        boatMB.addTube(`post_${side}_${pz}`, 'boat', BM.aluminum, [
+          [side * 0.95, 0.49, pz], [side * 0.95, 0.56, pz],
+        ], [0.014, 0.014], { segs: 8 });
+      }
+    }
+    // Bow front gate (low centered rail so clear view of guy & dog from front!)
+    for (const side of [-1, 1]) {
+      boatMB.addRoundedBox(`bow_fence_${side}`, 'boat', BM.hullWhite, 0.58, 0.34, 0.045, {
+        x: side * 0.66, y: 0.26, z: 1.44, segU: 8, segV: 6, power: 0.20,
+      });
+      boatMB.addTube(`bow_rail_${side}`, 'boat', BM.aluminum, [
+        [side * 0.95, 0.56, 1.44], [side * 0.37, 0.56, 1.44], [side * 0.37, 0.40, 1.44],
+      ], [0.015, 0.015, 0.015], { segs: 8 });
+    }
+    boatMB.addRoundedBox('bow_gate_low', 'boat', BM.hullWhite, 0.72, 0.24, 0.04, {
+      x: 0.0, y: 0.21, z: 1.44, segU: 8, segV: 6, power: 0.20,
+    });
+    // Stern fence & Outboard Motor at back
+    boatMB.addRoundedBox('stern_fence', 'boat', BM.hullWhite, 1.90, 0.40, 0.05, {
+      x: 0.0, y: 0.29, z: -1.55, segU: 10, segV: 8, power: 0.20,
+    });
+    boatMB.addRoundedBox('outboard_cowl', 'boat', BM.engineBlk, 0.32, 0.42, 0.44, {
+      x: 0.0, y: 0.44, z: -1.84, rx: 0.12, segU: 12, segV: 10, power: 0.42,
+    });
+    boatMB.addRoundedBox('outboard_leg', 'boat', BM.engineBlk, 0.12, 0.52, 0.22, {
+      x: 0.0, y: 0.08, z: -1.82, rx: 0.10, segU: 10, segV: 8, power: 0.30,
+    });
+
+    // Pontoon Helm Console (built neatly around helm_post at x=-0.49, z=+0.38!)
+    boatMB.addRoundedBox('console_body', 'boat', BM.hullWhite, 0.52, 0.78, 0.36, {
+      x: -0.52, y: 0.48, z: 0.46, segU: 14, segV: 10, power: 0.30,
+    });
+    boatMB.addRoundedBox('console_dash', 'boat', BM.navyTrim, 0.46, 0.20, 0.18, {
+      x: -0.52, y: 0.88, z: 0.42, rx: -0.35, segU: 12, segV: 8, power: 0.25,
+    });
+    // Tinted windscreen above console
+    boatMB.addRoundedBox('console_screen', 'boat', BM.windGlass, 0.44, 0.22, 0.025, {
+      x: -0.52, y: 1.03, z: 0.52, rx: -0.38, segU: 12, segV: 8, power: 0.22,
+    });
+    // Chrome gauge dials on dash
+    boatMB.addLathe('gauge_1', 'boat', BM.aluminum, [[0.036, 0], [0.036, 0.015]], {
+      x: -0.62, y: 0.90, z: 0.33, rx: -1.25, segs: 16,
+    });
+    boatMB.addLathe('gauge_2', 'boat', BM.aluminum, [[0.036, 0], [0.036, 0.015]], {
+      x: -0.40, y: 0.90, z: 0.33, rx: -1.25, segs: 16,
+    });
+    // Red Solo cup in cupholder on console!
+    boatMB.addLathe('solo_cup', 'boat', BM.cupRed, [[0.024, 0.87], [0.034, 0.98], [0.036, 0.99]], {
+      x: -0.32, z: 0.54, segs: 16,
+    });
+
+    // Plush Cream-White Leather Captain's Chair & Passenger Seats (matching Photo 3!)
+    function addLeatherSeat(name, sx, sz, ry = 0, w = 0.48) {
+      boatMB.addRoundedBox(`${name}_base`, 'boat', BM.seatShade, w * 0.92, 0.32, 0.44, {
+        x: sx, y: 0.25, z: sz, ry, segU: 12, segV: 8, power: 0.25,
+      });
+      boatMB.addRoundedBox(`${name}_cush`, 'boat', BM.seatCream, w, 0.14, 0.48, {
+        x: sx, y: 0.45, z: sz + 0.02, ry, segU: 14, segV: 10, power: 0.38,
+      });
+      boatMB.addRoundedBox(`${name}_back`, 'boat', BM.seatCream, w * 0.96, 0.56, 0.16, {
+        x: sx - Math.sin(ry) * 0.20, y: 0.78, z: sz - Math.cos(ry) * 0.20, rx: -0.14, ry, segU: 14, segV: 10, power: 0.40,
+      });
+      boatMB.addEllipsoid(`${name}_headrest`, 'boat', BM.seatCream, {
+        radX: w * 0.34, radY: 0.13, radZ: 0.095,
+        x: sx - Math.sin(ry) * 0.24, y: 1.12, z: sz - Math.cos(ry) * 0.24, ry, segU: 16, segV: 12,
+      });
+    }
+    // Captain's seat behind guy (x = -0.16, z = -0.45) — clean clearance!
+    addLeatherSeat('captain_seat', -0.16, -0.45, 0.0, 0.48);
+    // Passenger seat behind Cavalier (x = +0.52, z = -0.45)
+    addLeatherSeat('pass_seat', 0.52, -0.45, -0.12, 0.50);
+    // Aft stern lounge bench
+    boatMB.addRoundedBox('stern_bench_base', 'boat', BM.seatShade, 1.66, 0.30, 0.42, {
+      x: 0.0, y: 0.24, z: -1.24, segU: 12, segV: 8, power: 0.22,
+    });
+    boatMB.addRoundedBox('stern_bench_cush', 'boat', BM.seatCream, 1.72, 0.14, 0.46, {
+      x: 0.0, y: 0.43, z: -1.22, segU: 14, segV: 10, power: 0.35,
+    });
+    boatMB.addRoundedBox('stern_bench_back', 'boat', BM.seatCream, 1.70, 0.36, 0.14, {
+      x: 0.0, y: 0.66, z: -1.42, rx: -0.12, segU: 12, segV: 8, power: 0.35,
+    });
+
+    // Bow water-spray droplets (animated individually via spray_0..spray_11)
+    for (let i = 0; i < 12; i++) {
+      const side = i % 2 === 0 ? -1 : 1;
+      boatMB.addEllipsoid(`spray_${i}`, 'spray', BM.spray, {
+        radX: 0.048, radY: 0.042, radZ: 0.055,
+        x: side * 0.86, y: 0.07, z: 1.56, segU: 10, segV: 8,
+      });
+    }
+
+    // Scenic Pine-Lined Lake Banks on Port & Starboard (scrolled seamlessly past along -Z!)
+    const sceneryMB = new MeshEngine.MeshBuilder();
+    for (const [bName, bx] of [['shore_L', -10.5], ['shore_R', 11.5]]) {
+      sceneryMB.addRoundedBox(bName, 'scenery', BM.shore, 2.8, 0.55, 28.0, {
+        x: bx, y: 0.04, z: -3.0, segU: 10, segV: 6, power: 0.45,
+      });
+      for (let i = 0; i < 18; i++) {
+        const tz = -15.5 + i * 1.45;
+        const tx = bx + (bx < 0 ? 0.55 : -0.55) - ((i * 37) % 10) * 0.14 * (bx < 0 ? 1 : -1);
+        const h = 1.65 + ((i * 19) % 10) * 0.22;
+        const col = i % 2 === 0 ? BM.treeDark : BM.treeMid;
+        sceneryMB.addLathe(`tree_${bName}_${i}`, 'scenery', col, [
+          [0.08, 0.1], [0.68, 0.42], [0.44, 0.88], [0.58, 0.94], [0.30, 1.38], [0.02, h]
+        ], { x: tx, z: tz, segs: 10 });
+      }
+    }
+
+    // ==================== 4. GPU BUFFER UPLOAD ====================
+    function classifyAnim(p) {
+      if (p.group === 'spray') return p.name;
+      if (p.group === 'scenery') return 'scenery';
+      const n = p.name, g = p.group;
+      if (g === 'cap' || g === 'sunglasses') return 'guyHead';
+      if (n === 'head' || n === 'stubble' || n.startsWith('ear_') || n.startsWith('nose_') ||
+          n.startsWith('smile_') || n.startsWith('eye_') || n.startsWith('brow_') || n.startsWith('hair_')) return 'guyHead';
+      if (n === 'arm_L' || n === 'hand_L' || n.startsWith('watch_')) return 'guyLeftArm';
+      if (n === 'arm_R' || n === 'cuff_R' || n === 'hand_R' || n === 'thumb_R') return 'guyRightArm';
+      if (n === 'boat_wheel_rim' || n === 'boat_wheel_hub' || n.startsWith('wheel_spoke_')) return 'boatWheel';
+      if (n === 'dog_tail') return 'dogTail';
+      if (n === 'dog_tongue') return 'dogTongue';
+      if (n.startsWith('dog_ear_') && n.endsWith('_-1')) return 'dogEarR';
+      if (n.startsWith('dog_ear_') && n.endsWith('_1')) return 'dogEarL';
+      if (n === 'dog_head_white' || n.startsWith('dog_face_patch_') || n === 'dog_muzzle' ||
+          n === 'dog_nose' || n.startsWith('dog_eye_')) return 'dogHead';
+      return 'boatRoot';
+    }
+
+    const allParts = [...crewParts, ...boatMB.parts, ...sceneryMB.parts];
+    const gpuParts = allParts.map(p => {
+      const vao = gl.createVertexArray();
+      gl.bindVertexArray(vao);
+      const vp = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vp); gl.bufferData(gl.ARRAY_BUFFER, p.positions, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+      const vn = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vn); gl.bufferData(gl.ARRAY_BUFFER, p.normals, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+      const eb = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, eb); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, p.indices, gl.STATIC_DRAW);
+      gl.bindVertexArray(null);
+      return { part: p, vao, count: p.indices.length, anim: classifyAnim(p) };
+    });
+
+    // Fullscreen sky quad VAO & large water plane VAO
+    const vaoSky = gl.createVertexArray();
+    gl.bindVertexArray(vaoSky);
+    const vboSky = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vboSky);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, 1,1, -1,-1, 1,1, -1,1]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+    const vaoWater = gl.createVertexArray();
+    gl.bindVertexArray(vaoWater);
+    const vboWater = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vboWater);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-55,0,55, 55,0,55, 55,0,-55, -55,0,55, 55,0,-55, -55,0,-55]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
+
+    // Uniform locations
+    const sLoc = { InvVP: gl.getUniformLocation(progSky, 'uInvVP'), Sun: gl.getUniformLocation(progSky, 'uSunDir'), Time: gl.getUniformLocation(progSky, 'uTime') };
+    const wLoc = { VP: gl.getUniformLocation(progWater, 'uVP'), Cam: gl.getUniformLocation(progWater, 'uCamPos'), Sun: gl.getUniformLocation(progWater, 'uSunDir'), Time: gl.getUniformLocation(progWater, 'uTime') };
+    const mLoc = {
+      VP: gl.getUniformLocation(progMesh, 'uVP'), Model: gl.getUniformLocation(progMesh, 'uModel'),
+      Cam: gl.getUniformLocation(progMesh, 'uCamPos'), Sun: gl.getUniformLocation(progMesh, 'uSunDir'),
+      Col: gl.getUniformLocation(progMesh, 'uBaseColor'), Rough: gl.getUniformLocation(progMesh, 'uRoughness'), Metal: gl.getUniformLocation(progMesh, 'uMetalness'),
+    };
+
+    // ==================== 5. MATRIX & CHOREOGRAPHY MATH ====================
+    function mat4Perspective(fov, aspect, near, far) {
+      const f = 1 / Math.tan(fov / 2), nf = 1 / (near - far);
+      return new Float32Array([f/aspect,0,0,0, 0,f,0,0, 0,0,(far+near)*nf,-1, 0,0,2*far*near*nf,0]);
+    }
+    function mat4LookAt(eye, target, up) {
+      let zx=eye[0]-target[0], zy=eye[1]-target[1], zz=eye[2]-target[2];
+      let l=Math.hypot(zx,zy,zz)||1; zx/=l; zy/=l; zz/=l;
+      let xx=up[1]*zz-up[2]*zy, xy=up[2]*zx-up[0]*zz, xz=up[0]*zy-up[1]*zx;
+      l=Math.hypot(xx,xy,xz)||1; xx/=l; xy/=l; xz/=l;
+      const yx=zy*xz-zz*xy, yy=zz*xx-zx*xz, yz=zx*xy-zy*xx;
+      return new Float32Array([
+        xx,yx,zx,0, xy,yy,zy,0, xz,yz,zz,0,
+        -(xx*eye[0]+xy*eye[1]+xz*eye[2]), -(yx*eye[0]+yy*eye[1]+yz*eye[2]), -(zx*eye[0]+zy*eye[1]+zz*eye[2]), 1
+      ]);
+    }
+    function mat4Mul(a, b) {
+      const out = new Float32Array(16);
+      for (let c = 0; c < 4; c++)
+        for (let r = 0; r < 4; r++)
+          out[c*4+r] = a[r]*b[c*4] + a[4+r]*b[c*4+1] + a[8+r]*b[c*4+2] + a[12+r]*b[c*4+3];
+      return out;
+    }
+    function mat4Invert(m) {
+      const a00=m[0],a01=m[1],a02=m[2],a03=m[3], a10=m[4],a11=m[5],a12=m[6],a13=m[7],
+            a20=m[8],a21=m[9],a22=m[10],a23=m[11], a30=m[12],a31=m[13],a32=m[14],a33=m[15];
+      const b00=a00*a11-a01*a10, b01=a00*a12-a02*a10, b02=a00*a13-a03*a10, b03=a01*a12-a02*a11,
+            b04=a01*a13-a03*a11, b05=a02*a13-a03*a12, b06=a20*a31-a21*a30, b07=a20*a32-a22*a30,
+            b08=a20*a33-a23*a30, b09=a21*a32-a22*a31, b10=a21*a33-a23*a31, b11=a22*a33-a23*a32;
+      let det = b00*b11 - b01*b10 + b02*b09 + b03*b08 - b04*b07 + b05*b06;
+      if (!det) return null; det = 1.0 / det;
+      return new Float32Array([
+        (a11*b11-a12*b10+a13*b09)*det, (a02*b10-a01*b11-a03*b09)*det, (a31*b05-a32*b04+a33*b03)*det, (a22*b04-a21*b05-a23*b03)*det,
+        (a12*b08-a10*b11-a13*b07)*det, (a00*b11-a02*b08+a03*b07)*det, (a32*b02-a30*b05-a33*b01)*det, (a20*b05-a22*b02+a23*b01)*det,
+        (a10*b10-a11*b08+a13*b06)*det, (a01*b08-a00*b10-a03*b06)*det, (a30*b04-a31*b02+a33*b00)*det, (a21*b02-a20*b04-a23*b00)*det,
+        (a11*b07-a10*b09-a12*b06)*det, (a00*b09-a01*b07+a02*b06)*det, (a31*b01-a30*b03-a32*b00)*det, (a20*b03-a21*b01+a22*b00)*det,
+      ]);
+    }
+    const mat4Identity = () => new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+    const mat4Translate = (tx,ty,tz) => new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, tx,ty,tz,1]);
+    const mat4RotX = a => { const c=Math.cos(a),s=Math.sin(a); return new Float32Array([1,0,0,0, 0,c,s,0, 0,-s,c,0, 0,0,0,1]); };
+    const mat4RotY = a => { const c=Math.cos(a),s=Math.sin(a); return new Float32Array([c,0,-s,0, 0,1,0,0, s,0,c,0, 0,0,0,1]); };
+    const mat4RotZ = a => { const c=Math.cos(a),s=Math.sin(a); return new Float32Array([c,s,0,0, -s,c,0,0, 0,0,1,0, 0,0,0,1]); };
+    function mat4PivotEuler(px, py, pz, rx, ry, rz, dy = 0) {
+      let m = mat4Translate(px, py + dy, pz);
+      if (ry) m = mat4Mul(m, mat4RotY(ry));
+      if (rx) m = mat4Mul(m, mat4RotX(rx));
+      if (rz) m = mat4Mul(m, mat4RotZ(rz));
+      return mat4Mul(m, mat4Translate(-px, -py, -pz));
+    }
+
+    // 10-second Cinematic Camera Keyframes (generous headroom above cap + full Cavalier & boat!)
+    const camKeys = [
+      { t: 0.0,  eye: [ 2.45, 1.62, 3.15], target: [0.02, 0.98, 0.05] },
+      { t: 3.4,  eye: [ 1.35, 1.42, 2.65], target: [0.04, 1.02, 0.06] },
+      { t: 5.6,  eye: [ 0.68, 1.44, 2.76], target: [0.02, 1.06, 0.06] },
+      { t: 8.0,  eye: [-2.10, 1.54, 2.80], target: [0.00, 0.96, 0.02] },
+      { t: 10.0, eye: [-2.45, 1.78, 3.60], target: [0.00, 0.90, -0.10] },
+    ];
+    function evalAutoCamera(t) {
+      const u = ((t % 10.0) + 10.0) % 10.0;
+      let i = 0;
+      while (i < camKeys.length - 2 && u > camKeys[i + 1].t) i++;
+      const k0 = camKeys[i], k1 = camKeys[i + 1];
+      let a = (u - k0.t) / Math.max(0.001, k1.t - k0.t);
+      a = a * a * (3.0 - 2.0 * a); // smoothstep
+      const lerp3 = (p, q) => [p[0] + (q[0]-p[0])*a, p[1] + (q[1]-p[1])*a, p[2] + (q[2]-p[2])*a];
+      return { eye: lerp3(k0.eye, k1.eye), target: lerp3(k0.target, k1.target) };
+    }
+
+    const sunDir = [-0.36, 0.14, -0.92]; // Golden sunset over the water behind the boat!
+    let playing = true, autoCam = true, animT = 0;
+    let userYaw = 0.55, userPitch = 0.18, userDist = 3.2, dragging = false, lastX = 0, lastY = 0;
+
+    function resize() {
+      const dpr = isCapture ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
+      const h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Pointer orbit override when interacting
+    canvas.addEventListener('pointerdown', e => {
+      dragging = true; lastX = e.clientX; lastY = e.clientY;
+      autoCam = false; document.getElementById('btnCam').textContent = 'Camera: Free Orbit';
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      userYaw -= (e.clientX - lastX) * 0.008;
+      userPitch = Math.max(0.04, Math.min(0.95, userPitch + (e.clientY - lastY) * 0.007));
+      lastX = e.clientX; lastY = e.clientY;
+    });
+    canvas.addEventListener('pointerup', () => dragging = false);
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      autoCam = false; document.getElementById('btnCam').textContent = 'Camera: Free Orbit';
+      userDist = Math.max(1.4, Math.min(6.5, userDist + e.deltaY * 0.003));
+    }, { passive: false });
+
+    document.getElementById('btnPlay').addEventListener('click', e => {
+      playing = !playing;
+      e.currentTarget.textContent = playing ? 'Pause Cruise' : 'Resume Cruise';
+    });
+    document.getElementById('btnCam').addEventListener('click', e => {
+      autoCam = !autoCam;
+      e.currentTarget.textContent = autoCam ? 'Camera: Auto Cinema' : 'Camera: Free Orbit';
+    });
+
+    // ==================== 6. DETERMINISTIC FRAME RENDERER ====================
+    function renderAtTime(t) {
+      resize();
+      const aspect = canvas.width / Math.max(1, canvas.height);
+
+      let eye, target;
+      if (autoCam) {
+        const c = evalAutoCamera(t);
+        eye = c.eye; target = c.target;
+      } else {
+        const cp = Math.cos(userPitch), sp = Math.sin(userPitch);
+        target = [0.0, 0.86, 0.02];
+        eye = [Math.sin(userYaw)*cp*userDist, 0.86 + sp*userDist, Math.cos(userYaw)*cp*userDist];
+      }
+
+      const proj = mat4Perspective(0.62, aspect, 0.08, 90.0);
+      const view = mat4LookAt(eye, target, [0, 1, 0]);
+      const vp = mat4Mul(proj, view);
+      const invVP = mat4Invert(vp);
+
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+      // 1) Sunset Sky
+      gl.disable(gl.DEPTH_TEST);
+      gl.useProgram(progSky);
+      gl.uniformMatrix4fv(sLoc.InvVP, false, invVP);
+      gl.uniform3fv(sLoc.Sun, sunDir);
+      gl.uniform1f(sLoc.Time, t);
+      gl.bindVertexArray(vaoSky);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      // 2) Animated Lake Water + Wake Foam
+      gl.enable(gl.DEPTH_TEST);
+      gl.useProgram(progWater);
+      gl.uniformMatrix4fv(wLoc.VP, false, vp);
+      gl.uniform3fv(wLoc.Cam, eye);
+      gl.uniform3fv(wLoc.Sun, sunDir);
+      gl.uniform1f(wLoc.Time, t);
+      gl.bindVertexArray(vaoWater);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      // 3) Boat + Guy + Cavalier + Scrolling Shoreline Animation Matrices
+      const boatBob = Math.sin(t * 2.5) * 0.024 + Math.sin(t * 4.1) * 0.010;
+      const boatPitch = -0.028 + Math.cos(t * 2.1) * 0.022; // bow lifts slightly while cruising!
+      const boatRoll = Math.sin(t * 1.45) * 0.032;
+      const boatYaw = Math.sin(t * 0.7) * 0.035;
+      const boatRoot = mat4PivotEuler(0, 0.05, 0, boatPitch, boatYaw, boatRoll, boatBob);
+
+      const steer = Math.sin(t * 1.4) * 0.28;
+      const headNod = Math.sin(t * 3.2) * 0.055 + 0.02;
+      const headLook = Math.sin(t * 1.15) * 0.22; // glancing between lake and his Cavalier!
+      const mats = {
+        boatRoot,
+        guyHead: mat4Mul(boatRoot, mat4PivotEuler(-0.14, 1.46, 0.0, headNod, headLook, Math.sin(t * 1.6) * 0.045)),
+        guyLeftArm: mat4Mul(boatRoot, mat4PivotEuler(0.085, 1.30, -0.005, Math.sin(t * 3.2 - 0.5) * 0.04, 0, Math.sin(t * 3.2) * 0.025)),
+        guyRightArm: mat4Mul(boatRoot, mat4PivotEuler(-0.365, 1.30, -0.005, Math.sin(t * 1.4) * 0.03, 0, steer * 0.14)),
+        boatWheel: mat4Mul(boatRoot, mat4PivotEuler(-0.45, 0.99, 0.295, 0, 0, steer)),
+      };
+
+      // Happy Cavalier driving shotgun: fast tail wag, curious head tilt, wind-blown floppy ears, panting!
+      const wag = Math.sin(t * 13.0) * 0.46;
+      mats.dogTail = mat4Mul(boatRoot, mat4PivotEuler(0.326, 0.17, -0.065, Math.abs(wag) * 0.20, wag, wag * 0.35));
+      const dTilt = Math.sin(t * 2.2) * 0.19;
+      const dNod = Math.sin(t * 4.4) * 0.055;
+      const dBounce = Math.abs(Math.sin(t * 4.4)) * 0.015;
+      mats.dogHead = mat4Mul(boatRoot, mat4PivotEuler(0.278, 0.37, 0.12, dNod, Math.sin(t * 1.1) * 0.14, dTilt, dBounce));
+      // Boat-breeze flutter on Cavalier's ears!
+      const earFlutterL = Math.sin(t * 2.2 - 0.4) * 0.12 + Math.sin(t * 14.0) * 0.035;
+      const earFlutterR = Math.sin(t * 2.2 - 0.4) * 0.12 + Math.cos(t * 15.0) * 0.035;
+      mats.dogEarL = mat4Mul(mats.dogHead, mat4PivotEuler(0.38, 0.49, 0.13, -0.08, 0, earFlutterL + 0.05));
+      mats.dogEarR = mat4Mul(mats.dogHead, mat4PivotEuler(0.18, 0.49, 0.17, -0.08, 0, earFlutterR - 0.05));
+      const pant = Math.sin(t * 10.0) * 0.007;
+      mats.dogTongue = mat4Mul(mats.dogHead, mat4Translate(0, pant, Math.abs(pant) * 0.4));
+
+      // Scrolling distant shoreline (-Z loop)
+      const shoreZ = -(((t * 1.45) % 8.7) - 4.35);
+      mats.scenery = mat4Translate(0, 0, shoreZ);
+
+      // Animated bow splash droplets
+      for (let i = 0; i < 12; i++) {
+        const phase = (t * 2.4 + i * 0.27) % 1.0;
+        const side = i % 2 === 0 ? -1 : 1;
+        const arcY = phase * (1.0 - phase) * 1.15 - 0.02;
+        const outX = side * phase * 0.48;
+        const backZ = -phase * 0.88;
+        mats[`spray_${i}`] = mat4Mul(boatRoot, mat4Translate(outX, arcY, backZ));
+      }
+
+      gl.useProgram(progMesh);
+      gl.uniformMatrix4fv(mLoc.VP, false, vp);
+      gl.uniform3fv(mLoc.Cam, eye);
+      gl.uniform3fv(mLoc.Sun, sunDir);
+
+      for (const g of gpuParts) {
+        gl.uniformMatrix4fv(mLoc.Model, false, mats[g.anim] || boatRoot);
+        gl.uniform3fv(mLoc.Col, g.part.material.color);
+        gl.uniform1f(mLoc.Rough, g.part.material.roughness);
+        gl.uniform1f(mLoc.Metal, g.part.material.metalness);
+        gl.bindVertexArray(g.vao);
+        gl.drawElements(gl.TRIANGLES, g.count, gl.UNSIGNED_INT, 0);
+      }
+
+      if (!isCapture) {
+        document.getElementById('timeLabel').textContent = `${(t % 10.0).toFixed(1)}s / 10.0s`;
+      }
+    }
+
+    // Expose deterministic frame step for automated 30fps capture
+    window.renderFrame = function (tSeconds) {
+      renderAtTime(tSeconds);
+      gl.finish();
+      return true;
+    };
+    window.__sceneReady = true;
+
+    if (!isCapture) {
+      let last = performance.now();
+      function loop(now) {
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        if (playing) animT = (animT + dt) % 10.0;
+        renderAtTime(animT);
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    } else {
+      renderAtTime(0);
+    }
+  })();
+  </script>
+</body>
+</html>
