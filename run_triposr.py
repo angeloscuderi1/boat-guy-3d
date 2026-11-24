@@ -96,7 +96,10 @@ def main():
     os.makedirs(debug_dir, exist_ok=True)
     os.makedirs(os.path.join(ROOT, "output"), exist_ok=True)
 
+    only = set(sys.argv[1:]) if len(sys.argv) > 1 else None
     for name, src_path, out_path, target_h, mc_res, extra_yaw in jobs:
+        if only and name not in only:
+            continue
         t_start = time.time()
         img = prep_image(src_path, rembg_session, ratio=0.85)
         img.save(os.path.join(debug_dir, f"triposr_in_{name}.png"))
