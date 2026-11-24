@@ -1,0 +1,9 @@
+{
+  "name": "boat-guy-3d",
+  "version": "1.0.0",
+  "description": "Interactive WebGL2 Stylized 3D Figurine & Photorealistic Turnaround Studio",
+  "scripts": {
+    "build": "node export.js"
+  },
+  "license": "MIT"
+}
