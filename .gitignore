@@ -1,4 +1,6 @@
 .venv-3d/
 .triposr/
+.venv-hy3d/
+.hunyuan3d/
 __pycache__/
 .DS_Store

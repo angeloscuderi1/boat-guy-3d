@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Boat Guy &amp; Cavalier — Interactive 3D Model &amp; Turnaround Studio</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
   <style>
     :root {
       --background: #0b101b;
@@ -85,16 +93,27 @@
       </div>
     </div>
 
-    <!-- Shared Viewport Container (330px tall) -->
-    <div class="viewport-box relative w-full rounded-xl overflow-hidden border border-[var(--card-border)] shadow-2xl">
-      <!-- WebGL2 Canvas (used by Stylized 3D Model AND Photorealistic 3D Blender Rig!) -->
+    <!-- Shared Viewport Container -->
+    <div id="viewportBox" class="viewport-box relative w-full rounded-xl overflow-hidden border border-[var(--card-border)] shadow-2xl">
+      <!-- WebGL2 Canvas (used by Stylized 3D Model AND 3D Reference Planes) -->
       <canvas id="glCanvas" class="w-full h-full is-hidden"></canvas>
+
+      <!-- Three.js PBR Viewer Host (used by 3D Mesh Viewer PBR mode & custom .GLB files) -->
+      <div id="threeHost" class="w-full h-full is-hidden relative"></div>
 
       <!-- 2D Turnaround Sheet / Turntable Canvas (used by Sheet & Turntable Scrub modes) -->
       <canvas id="photoCanvas" class="w-full h-full"></canvas>
 
+      <!-- Drag-and-drop overlay for custom .GLB / .GLTF files -->
+      <div id="dropOverlay" class="is-hidden pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-slate-950/75 border-2 border-dashed border-blue-400 rounded-xl backdrop-blur-sm">
+        <div class="px-4 py-3 rounded-lg bg-slate-900/90 border border-blue-400/50 text-center">
+          <div class="text-sm font-semibold text-blue-200">Drop .GLB / .GLTF to inspect in Three.js PBR</div>
+          <div class="text-xs text-slate-300 mt-0.5">Supports Meshy, Tripo3D, Hyper3D Rodin, Hunyuan3D &amp; custom meshes</div>
+        </div>
+      </div>
+
       <!-- Angle quick-select overlay (visible only in Turntable Scrub sub-mode) -->
-      <div id="scrubOverlay" class="is-hidden absolute top-2 left-2.5 flex items-center gap-1 text-xs">
+      <div id="scrubOverlay" class="is-hidden absolute top-2 left-2.5 z-10 flex items-center gap-1 text-xs">
         <button data-angle="0" class="ang-btn pill pill-active px-2 py-0.5 rounded border border-black/15 bg-white/80 text-black">Front</button>
         <button data-angle="1" class="ang-btn pill px-2 py-0.5 rounded border border-black/15 bg-white/80 text-black">Left Side</button>
         <button data-angle="2" class="ang-btn pill px-2 py-0.5 rounded border border-black/15 bg-white/80 text-black">Back</button>
@@ -102,11 +121,11 @@
         <button id="btnAutoTurn" class="pill pill-active ml-1 px-2 py-0.5 rounded border border-black/15">Auto-Turn</button>
       </div>
 
-      <div id="hintBadge" class="pointer-events-none absolute bottom-2 left-2.5 text-xs px-2 py-0.5 rounded bg-black/50 text-white/90 backdrop-blur-sm">
-        Orthographic Front · Side · Back reference sheet (ready for Meshy / Tripo3D / Blender)
+      <div id="hintBadge" class="pointer-events-none absolute bottom-2 left-2.5 z-10 text-xs px-2 py-0.5 rounded bg-black/55 text-white/90 backdrop-blur-sm">
+        Clean A-pose Front · Side · Back sheet for Meshy, Tripo3D, or Rodin (or drop a .GLB here)
       </div>
-      <div id="statsBadge" class="pointer-events-none absolute top-2 right-2.5 text-xs font-mono px-2 py-0.5 rounded bg-black/50 text-white/90 backdrop-blur-sm">
-        3-View Orthographic
+      <div id="statsBadge" class="pointer-events-none absolute top-2 right-2.5 z-10 text-xs font-mono px-2 py-0.5 rounded bg-black/55 text-white/90 backdrop-blur-sm">
+        Photorealistic · 3-View Sheet
       </div>
     </div>
 
@@ -128,15 +147,17 @@
     <div id="ftrPhoto" class="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs">
       <div class="flex items-center gap-1.5 flex-wrap">
         <span class="text-[var(--muted-foreground)]">View:</span>
-        <button data-pview="mesh3d" class="pview-btn pill pill-active px-2.5 py-1 rounded border border-[var(--border)] font-medium">Photorealistic 3D Mesh</button>
-        <button data-pview="sheet" class="pview-btn pill px-2 py-1 rounded border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]">3-View Sheet</button>
+        <button data-pview="sheet" class="pview-btn pill pill-active px-2.5 py-1 rounded border border-[var(--border)] font-medium">3-View Sheet</button>
         <button data-pview="scrub" class="pview-btn pill px-2 py-1 rounded border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]">Turntable Scrub</button>
         <button data-pview="rig3d" class="pview-btn pill px-2 py-1 rounded border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]">3D Reference Planes</button>
+        <button data-pview="mesh3d" class="pview-btn pill px-2.5 py-1 rounded border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)] font-medium">3D Mesh Viewer (PBR)</button>
       </div>
       <div class="flex items-center gap-1.5 flex-wrap">
-        <button id="btnDlPhotoGLB" class="px-2.5 py-1 rounded font-medium bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90">Download Photoreal .GLB</button>
-        <button id="btnDlSheet" class="px-2.5 py-1 rounded font-medium border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]">Sheet (.PNG)</button>
+        <button id="btnLoadCustomGLB" type="button" class="px-2.5 py-1 rounded font-medium bg-emerald-600 text-white hover:bg-emerald-500">Load Custom .GLB</button>
+        <input id="glbFileInput" type="file" accept=".glb,.gltf" class="hidden" />
+        <button id="btnDlSheet" class="px-2.5 py-1 rounded font-medium bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90">Sheet (.PNG)</button>
         <button id="btnDlViews" class="px-2.5 py-1 rounded font-medium border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]">3 Crops</button>
+        <button id="btnDlPhotoGLB" class="px-2.5 py-1 rounded font-medium border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]">Download .GLB</button>
       </div>
     </div>
   </div>
@@ -879,178 +900,12 @@ function buildBoatGuyModel(Engine) {
     }`
   );
 
-  // ---- Shader 3: Photorealistic Vertex-Colored GLB Mesh ----
-  const progVCol = makeProgram(
-    `#version 300 es
-    precision highp float;
-    layout(location=0) in vec3 aPos;
-    layout(location=1) in vec3 aNorm;
-    layout(location=2) in vec3 aCol;
-    uniform mat4 uVP;
-    out vec3 vPos;
-    out vec3 vNorm;
-    out vec3 vCol;
-    void main() {
-      vPos = aPos;
-      vNorm = aNorm;
-      vCol = aCol;
-      gl_Position = uVP * vec4(aPos, 1.0);
-    }`,
-    `#version 300 es
-    precision highp float;
-    in vec3 vPos;
-    in vec3 vNorm;
-    in vec3 vCol;
-    uniform vec3 uCamPos;
-    out vec4 fragColor;
-    vec3 aces(vec3 x) {
-      return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
-    }
-    void main() {
-      vec3 N = normalize(gl_FrontFacing ? vNorm : -vNorm);
-      vec3 V = normalize(uCamPos - vPos);
-      vec3 albedo = pow(clamp(vCol, 0.0, 1.0), vec3(2.2));
-      vec3 keyDir  = normalize(vec3(0.48, 0.72, 0.78));
-      vec3 fillDir = normalize(vec3(-0.75, 0.35, 0.55));
-      vec3 rimDir  = normalize(vec3(-0.20, 0.50, -0.85));
-      float hemi = N.y * 0.5 + 0.5;
-      float ao = smoothstep(0.0, 0.18, vPos.y) * 0.18 + 0.82;
-      vec3 amb = mix(vec3(0.28, 0.27, 0.28), vec3(0.55, 0.58, 0.64), hemi) * ao;
-      float ndlK = max(dot(N, keyDir), 0.0);
-      float ndlF = max(dot(N, fillDir), 0.0);
-      float fres = pow(1.0 - max(dot(N, V), 0.0), 3.2);
-      float ndlR = max(dot(N, rimDir), 0.0);
-      vec3 col = albedo * (amb + ndlK * vec3(1.05, 1.02, 0.98) + ndlF * vec3(0.45, 0.48, 0.54));
-      col += albedo * (ndlR * 0.25 + fres * 0.22) * vec3(0.75, 0.82, 0.95);
-      col = pow(aces(col), vec3(1.0 / 2.2));
-      fragColor = vec4(col, 1.0);
-    }`
-  );
-  const vLoc = {
-    VP: gl.getUniformLocation(progVCol, 'uVP'),
-    Cam: gl.getUniformLocation(progVCol, 'uCamPos'),
-  };
-
-  // Minimal binary GLB parser + WebGL2 buffer builder for vertex-colored photoreal meshes
-  function parseGLB(buffer) {
-    const dv = new DataView(buffer);
-    const jsonLen = dv.getUint32(12, true);
-    const gltf = JSON.parse(new TextDecoder().decode(new Uint8Array(buffer, 20, jsonLen)));
-    const binOffset = 20 + jsonLen + 8;
-
-    function readAccessor(accIdx) {
-      const acc = gltf.accessors[accIdx];
-      const bv = gltf.bufferViews[acc.bufferView];
-      const start = binOffset + (bv.byteOffset || 0) + (acc.byteOffset || 0);
-      const comps = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 }[acc.type];
-      const stride = bv.byteStride || 0;
-      const cType = acc.componentType;
-      const count = acc.count;
-
-      if (stride === 0) {
-        if (cType === 5126) return { data: new Float32Array(buffer.slice(start, start + count * comps * 4)), comps, cType };
-        if (cType === 5125) return { data: new Uint32Array(buffer.slice(start, start + count * comps * 4)), comps, cType };
-        if (cType === 5123) return { data: new Uint16Array(buffer.slice(start, start + count * comps * 2)), comps, cType };
-        if (cType === 5121) return { data: new Uint8Array(buffer.slice(start, start + count * comps)), comps, cType };
-      }
-      // Strided fallback
-      const out = cType === 5125 ? new Uint32Array(count * comps) : new Float32Array(count * comps);
-      const elemBytes = cType === 5126 || cType === 5125 ? 4 : cType === 5123 ? 2 : 1;
-      const step = stride || (comps * elemBytes);
-      for (let i = 0; i < count; i++) {
-        const base = start + i * step;
-        for (let k = 0; k < comps; k++) {
-          const p = base + k * elemBytes;
-          if (cType === 5126) out[i * comps + k] = dv.getFloat32(p, true);
-          else if (cType === 5125) out[i * comps + k] = dv.getUint32(p, true);
-          else if (cType === 5123) out[i * comps + k] = dv.getUint16(p, true) / (acc.normalized ? 65535 : 1);
-          else if (cType === 5121) out[i * comps + k] = dv.getUint8(p) / (acc.normalized ? 255 : 1);
-        }
-      }
-      return { data: out, comps, cType: cType === 5125 ? 5125 : 5126 };
-    }
-
-    const prim = gltf.meshes[0].primitives[0];
-    const posAcc = readAccessor(prim.attributes.POSITION);
-    const positions = posAcc.data;
-    const vertCount = positions.length / 3;
-
-    let indices, idxType = gl.UNSIGNED_INT;
-    if (prim.indices !== undefined) {
-      const idxAcc = readAccessor(prim.indices);
-      indices = idxAcc.data;
-      idxType = idxAcc.cType === 5123 ? gl.UNSIGNED_SHORT : gl.UNSIGNED_INT;
-    } else {
-      indices = new Uint32Array(vertCount);
-      for (let i = 0; i < vertCount; i++) indices[i] = i;
-    }
-
-    let normals;
-    if (prim.attributes.NORMAL !== undefined) {
-      normals = readAccessor(prim.attributes.NORMAL).data;
-    } else {
-      normals = new Float32Array(positions.length);
-      for (let i = 0; i < indices.length; i += 3) {
-        const i0 = indices[i] * 3, i1 = indices[i + 1] * 3, i2 = indices[i + 2] * 3;
-        const ax = positions[i1] - positions[i0], ay = positions[i1 + 1] - positions[i0 + 1], az = positions[i1 + 2] - positions[i0 + 2];
-        const bx = positions[i2] - positions[i0], by = positions[i2 + 1] - positions[i0 + 1], bz = positions[i2 + 2] - positions[i0 + 2];
-        const nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
-        normals[i0] += nx; normals[i0 + 1] += ny; normals[i0 + 2] += nz;
-        normals[i1] += nx; normals[i1 + 1] += ny; normals[i1 + 2] += nz;
-        normals[i2] += nx; normals[i2 + 1] += ny; normals[i2 + 2] += nz;
-      }
-      for (let i = 0; i < normals.length; i += 3) {
-        const l = Math.hypot(normals[i], normals[i + 1], normals[i + 2]) || 1;
-        normals[i] /= l; normals[i + 1] /= l; normals[i + 2] /= l;
-      }
-    }
-
-    const colors = new Float32Array(vertCount * 3);
-    if (prim.attributes.COLOR_0 !== undefined) {
-      const colAcc = readAccessor(prim.attributes.COLOR_0);
-      const scale = colAcc.cType === 5121 ? 1 / 255 : colAcc.cType === 5123 ? 1 / 65535 : 1;
-      for (let i = 0; i < vertCount; i++) {
-        colors[i * 3] = colAcc.data[i * colAcc.comps] * scale;
-        colors[i * 3 + 1] = colAcc.data[i * colAcc.comps + 1] * scale;
-        colors[i * 3 + 2] = colAcc.data[i * colAcc.comps + 2] * scale;
-      }
-    } else {
-      colors.fill(0.8);
-    }
-
-    const vao = gl.createVertexArray();
-    gl.bindVertexArray(vao);
-    const vboP = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vboP); gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-    const vboN = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vboN); gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
-    const vboC = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vboC); gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 0, 0);
-    const ebo = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-    gl.bindVertexArray(null);
-    return { vao, count: indices.length, idxType, verts: vertCount, tris: Math.round(indices.length / 3) };
-  }
-
   const photorealPaths = {
     boat: './output/photoreal_boat_guy.glb',
     denim: './output/photoreal_denim_guy.glb',
     dog: './output/photoreal_cavalier_dog.glb',
   };
-  const photorealCache = {};
-  function ensurePhotorealMesh(subj) {
-    if (photorealCache[subj]) return;
-    photorealCache[subj] = { status: 'loading' };
-    fetch(photorealPaths[subj])
-      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
-      .then(buf => {
-        photorealCache[subj] = { status: 'ready', mesh: parseGLB(buf) };
-        if (state.mainMode === 'photo' && state.photoView === 'mesh3d' && state.photoSubj === subj) syncUI();
-      })
-      .catch(err => {
-        photorealCache[subj] = { status: 'error', error: err.message };
-        if (state.mainMode === 'photo' && state.photoView === 'mesh3d' && state.photoSubj === subj) syncUI();
-      });
-  }
+  window.__STUDIO_PHOTOREAL_PATHS = photorealPaths;
 
   // Mesh uniforms
   const mLoc = {
@@ -1187,7 +1042,7 @@ function buildBoatGuyModel(Engine) {
   const state = {
     mainMode: 'photo',     // 'stylized' | 'photo'
     photoSubj: 'boat',     // 'boat' | 'denim' | 'dog'
-    photoView: 'mesh3d',   // 'mesh3d' | 'sheet' | 'scrub' | 'rig3d'
+    photoView: 'sheet',    // 'sheet' | 'scrub' | 'rig3d' | 'mesh3d'
     scrubAngle: 0,         // 0=Front, 1=LeftSide, 2=Back, 3=RightSide(Mirror)
     autoTurn: true,
     yaw: 0.34, pitch: 0.14, dist: 2.85,
@@ -1195,14 +1050,6 @@ function buildBoatGuyModel(Engine) {
     spin: false, animate: true, sunset: true,
     toggles: { cap: true, sunglasses: true, dog: true, helm: true },
   };
-
-  function framePhotoreal() {
-    if (state.photoSubj === 'dog') {
-      state.target = [0.0, 0.28, 0.0]; state.dist = 1.25; state.yaw = 0.44; state.pitch = 0.16;
-    } else {
-      state.target = [0.0, 0.92, 0.0]; state.dist = 2.85; state.yaw = 0.32; state.pitch = 0.14;
-    }
-  }
 
   function getActiveGroups() {
     const s = new Set(['base', 'body']);
@@ -1213,9 +1060,15 @@ function buildBoatGuyModel(Engine) {
     return s;
   }
 
+  const threeHost = document.getElementById('threeHost');
+  const viewportBox = document.getElementById('viewportBox');
+  const dropOverlay = document.getElementById('dropOverlay');
+  const glbFileInput = document.getElementById('glbFileInput');
+
   function syncUI() {
     const isStylized = state.mainMode === 'stylized';
-    const useGL = isStylized || state.photoView === 'rig3d' || state.photoView === 'mesh3d';
+    const useThree = !isStylized && state.photoView === 'mesh3d';
+    const useGL = isStylized || state.photoView === 'rig3d';
 
     document.getElementById('tabStylized').classList.toggle('mode-tab-active', isStylized);
     document.getElementById('tabPhoto').classList.toggle('mode-tab-active', !isStylized);
@@ -1226,32 +1079,42 @@ function buildBoatGuyModel(Engine) {
     document.getElementById('ftrPhoto').classList.toggle('is-hidden', isStylized);
 
     glCanvas.classList.toggle('is-hidden', !useGL);
-    photoCanvas.classList.toggle('is-hidden', useGL);
+    threeHost.classList.toggle('is-hidden', !useThree);
+    photoCanvas.classList.toggle('is-hidden', useGL || useThree);
     document.getElementById('scrubOverlay').classList.toggle('is-hidden', isStylized || state.photoView !== 'scrub');
 
     const hint = document.getElementById('hintBadge');
     const badge = document.getElementById('statsBadge');
+    if (window.ThreePBRViewer) {
+      window.ThreePBRViewer.setActive(useThree);
+    }
+
     if (isStylized) {
       hint.textContent = 'Drag to orbit · Scroll to zoom · Double-click to reset';
       const active = getActiveGroups();
       let tris = 0;
       for (const p of parts) if (active.has(p.group)) tris += p.indices.length / 3;
       badge.textContent = `Stylized · ${(tris/1000).toFixed(1)}k tris`;
-    } else if (state.photoView === 'mesh3d') {
-      ensurePhotorealMesh(state.photoSubj);
-      const entry = photorealCache[state.photoSubj];
-      if (!entry || entry.status === 'loading') {
-        hint.textContent = 'Loading photorealistic TripoSR 3D .GLB mesh...';
-        badge.textContent = 'Photoreal 3D · Loading...';
-      } else if (entry.status === 'error') {
-        hint.textContent = 'Open on GitHub Pages or local HTTP server to stream .GLB (file:// blocks fetch)';
-        badge.textContent = 'Photoreal 3D · Serve via HTTP';
+    } else if (useThree) {
+      if (window.ThreePBRViewer) {
+        if (window.__pendingCustomFile) {
+          const f = window.__pendingCustomFile;
+          window.__pendingCustomFile = null;
+          window.ThreePBRViewer.loadFile(f);
+        } else if (!window.__threeHasCustom) {
+          window.ThreePBRViewer.loadSubject(state.photoSubj);
+        } else {
+          window.ThreePBRViewer.syncBadges();
+        }
+      } else if (window.__threeViewerInitError) {
+        hint.textContent = 'Three.js PBR viewer failed to load: ' + window.__threeViewerInitError;
+        badge.textContent = 'PBR 3D · Offline';
       } else {
-        hint.textContent = 'Real TripoSR photorealistic 3D mesh · Drag to orbit · Scroll to zoom';
-        badge.textContent = `Photoreal 3D · ${(entry.mesh.tris / 1000).toFixed(1)}k tris`;
+        hint.textContent = 'Initializing Three.js PBR 3D viewer...';
+        badge.textContent = 'PBR 3D · Initializing';
       }
     } else if (state.photoView === 'sheet') {
-      hint.textContent = 'Clean A-pose Front · Side · Back sheet for Meshy, Tripo3D, or Blender';
+      hint.textContent = 'Clean A-pose Front · Side · Back sheet for Meshy, Tripo3D, or Rodin (or drop a .GLB here)';
       badge.textContent = 'Photorealistic · 3-View Sheet';
     } else if (state.photoView === 'scrub') {
       hint.textContent = 'Drag horizontally to scrub 360° orthographic angles';
@@ -1262,6 +1125,58 @@ function buildBoatGuyModel(Engine) {
     }
     resizeAll();
   }
+  window.__syncStudioUI = syncUI;
+
+  window.loadCustomGLBFile = function (file) {
+    if (!file) return;
+    window.__threeHasCustom = true;
+    state.mainMode = 'photo';
+    state.photoView = 'mesh3d';
+    document.querySelectorAll('.pview-btn').forEach(b => {
+      const on = b.dataset.pview === 'mesh3d';
+      b.classList.toggle('pill-active', on);
+      b.classList.toggle('bg-[var(--card)]', !on);
+    });
+    if (window.ThreePBRViewer) {
+      syncUI();
+      window.ThreePBRViewer.loadFile(file);
+    } else {
+      window.__pendingCustomFile = file;
+      syncUI();
+    }
+  };
+
+  document.getElementById('btnLoadCustomGLB').addEventListener('click', () => glbFileInput.click());
+  glbFileInput.addEventListener('change', e => {
+    const file = e.target.files && e.target.files[0];
+    if (file) window.loadCustomGLBFile(file);
+    e.target.value = '';
+  });
+
+  let dragDepth = 0;
+  viewportBox.addEventListener('dragenter', e => {
+    if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) {
+      dragDepth++;
+      dropOverlay.classList.remove('is-hidden');
+    }
+  });
+  viewportBox.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+  });
+  viewportBox.addEventListener('dragleave', () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) dropOverlay.classList.add('is-hidden');
+  });
+  viewportBox.addEventListener('drop', e => {
+    e.preventDefault();
+    dragDepth = 0;
+    dropOverlay.classList.add('is-hidden');
+    const files = e.dataTransfer && e.dataTransfer.files;
+    if (!files || !files.length) return;
+    const match = Array.from(files).find(f => /\.(glb|gltf)$/i.test(f.name)) || files[0];
+    if (match) window.loadCustomGLBFile(match);
+  });
 
   function resizeAll() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -1273,6 +1188,7 @@ function buildBoatGuyModel(Engine) {
       }
     }
     gl.viewport(0, 0, glCanvas.width, glCanvas.height);
+    if (window.ThreePBRViewer) window.ThreePBRViewer.resize();
   }
   new ResizeObserver(resizeAll).observe(glCanvas.parentElement);
 
@@ -1285,7 +1201,6 @@ function buildBoatGuyModel(Engine) {
   document.getElementById('tabPhoto').addEventListener('click', () => {
     state.mainMode = 'photo';
     if (state.photoView === 'rig3d') { state.target = [0, 0.96, 0]; state.dist = 2.85; }
-    else if (state.photoView === 'mesh3d') { framePhotoreal(); }
     syncUI();
   });
 
@@ -1293,13 +1208,13 @@ function buildBoatGuyModel(Engine) {
   document.querySelectorAll('.subj-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       state.photoSubj = btn.dataset.subj;
+      window.__threeHasCustom = false;
       document.querySelectorAll('.subj-btn').forEach(b => {
         const on = b === btn;
         b.classList.toggle('pill-active', on);
         b.classList.toggle('bg-[var(--card)]', !on);
       });
       if (state.photoView === 'mesh3d') {
-        framePhotoreal();
         syncUI();
       }
     });
@@ -1316,8 +1231,6 @@ function buildBoatGuyModel(Engine) {
       });
       if (state.photoView === 'rig3d') {
         state.yaw = 0.58; state.pitch = 0.16; state.dist = 2.85; state.target = [0, 0.95, 0];
-      } else if (state.photoView === 'mesh3d') {
-        framePhotoreal();
       }
       syncUI();
     });
@@ -1393,8 +1306,11 @@ function buildBoatGuyModel(Engine) {
     state.yaw = p.yaw; state.pitch = p.pitch; state.dist = p.dist; state.target = [...p.target];
   }
   glCanvas.addEventListener('dblclick', () => {
-    if (state.mainMode === 'photo' && state.photoView === 'mesh3d') framePhotoreal();
-    else setCamera('threeQuarter');
+    if (state.mainMode === 'photo' && state.photoView === 'rig3d') {
+      state.yaw = 0.58; state.pitch = 0.16; state.dist = 2.85; state.target = [0, 0.95, 0];
+    } else {
+      setCamera('threeQuarter');
+    }
   });
   document.querySelectorAll('.cam-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1515,7 +1431,12 @@ function buildBoatGuyModel(Engine) {
     const dt = Math.min(0.05, (now - lastTime) / 1000);
     lastTime = now;
 
-    if (state.mainMode === 'photo' && state.photoView !== 'rig3d' && state.photoView !== 'mesh3d') {
+    if (state.mainMode === 'photo' && state.photoView === 'mesh3d') {
+      requestAnimationFrame(render);
+      return;
+    }
+
+    if (state.mainMode === 'photo' && state.photoView !== 'rig3d') {
       if (state.photoView === 'scrub' && state.autoTurn && !pDragging) {
         scrubTimer += dt;
         if (scrubTimer > 0.85) { scrubTimer = 0; setScrubAngle(state.scrubAngle + 1); }
@@ -1526,7 +1447,7 @@ function buildBoatGuyModel(Engine) {
     }
 
     if (state.spin && !dragging) state.yaw += dt * 0.42;
-    if (state.mainMode === 'photo' && (state.photoView === 'rig3d' || state.photoView === 'mesh3d') && !dragging) state.yaw += dt * 0.32;
+    if (state.mainMode === 'photo' && state.photoView === 'rig3d' && !dragging) state.yaw += dt * 0.32;
     if (state.animate) animTime += dt;
 
     const cp = Math.cos(state.pitch), sp = Math.sin(state.pitch);
@@ -1538,33 +1459,6 @@ function buildBoatGuyModel(Engine) {
     const proj = mat4Perspective(0.68, glCanvas.width / glCanvas.height, 0.05, 30.0);
     const view = mat4LookAt(eye, state.target, [0, 1, 0]);
     const vp = mat4Mul(proj, view);
-
-    if (state.mainMode === 'photo' && state.photoView === 'mesh3d') {
-      gl.clearColor(0.09, 0.12, 0.18, 1);
-      gl.enable(gl.DEPTH_TEST);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-      // Subtle floor reference grid
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      gl.useProgram(progPlane);
-      gl.uniformMatrix4fv(pLoc.VP, false, vp);
-      gl.uniform1i(pLoc.IsFloor, 1);
-      gl.bindVertexArray(vaoFloor);
-      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
-      gl.disable(gl.BLEND);
-
-      const entry = photorealCache[state.photoSubj];
-      if (entry && entry.status === 'ready') {
-        gl.useProgram(progVCol);
-        gl.uniformMatrix4fv(vLoc.VP, false, vp);
-        gl.uniform3fv(vLoc.Cam, eye);
-        gl.bindVertexArray(entry.mesh.vao);
-        gl.drawElements(gl.TRIANGLES, entry.mesh.count, entry.mesh.idxType, 0);
-      }
-      requestAnimationFrame(render);
-      return;
-    }
 
     if (state.mainMode === 'photo' && state.photoView === 'rig3d') {
       gl.clearColor(0.11, 0.13, 0.18, 1);
@@ -1659,6 +1553,378 @@ function buildBoatGuyModel(Engine) {
     requestAnimationFrame(render);
   }
   requestAnimationFrame(render);
+})();
+</script>
+
+<script type="module">
+(async function initThreePBRViewer() {
+  const threeHost = document.getElementById('threeHost');
+  try {
+    const [THREE, { OrbitControls }, { GLTFLoader }, { DRACOLoader }, { RoomEnvironment }] = await Promise.all([
+      import('three'),
+      import('three/addons/controls/OrbitControls.js'),
+      import('three/addons/loaders/GLTFLoader.js'),
+      import('three/addons/loaders/DRACOLoader.js'),
+      import('three/addons/environments/RoomEnvironment.js'),
+    ]);
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: 'high-performance',
+      preserveDrawingBuffer: true,
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.00;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.domElement.className = 'w-full h-full block';
+    threeHost.appendChild(renderer.domElement);
+
+    // Compact studio toolbar overlay inside #threeHost
+    const overlay = document.createElement('div');
+    overlay.className = 'absolute top-2 left-2.5 z-10 flex items-center gap-1 text-xs';
+    overlay.innerHTML = `
+      <button id="btnThreeReset" type="button" class="pill px-2 py-0.5 rounded border border-white/15 bg-black/55 text-white hover:border-blue-400 backdrop-blur-sm">Reset View</button>
+      <button id="btnThreeSpin" type="button" class="pill pill-active px-2 py-0.5 rounded border border-white/15 bg-black/55 text-white backdrop-blur-sm">Auto-Spin</button>
+      <button id="btnThreeWire" type="button" class="pill px-2 py-0.5 rounded border border-white/15 bg-black/55 text-white hover:border-blue-400 backdrop-blur-sm">Wireframe</button>
+    `;
+    threeHost.appendChild(overlay);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x141b29);
+
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04);
+    scene.environment = envRT.texture;
+    scene.environmentIntensity = 0.62;
+    pmrem.dispose();
+
+    const camera = new THREE.PerspectiveCamera(38, 16 / 9, 0.04, 80);
+    camera.position.set(1.0, 1.35, 3.0);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.065;
+    controls.minDistance = 0.45;
+    controls.maxDistance = 12.0;
+    controls.maxPolarAngle = Math.PI * 0.56;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 1.35;
+
+    // 3-point studio lighting + grounded pedestal disk
+    const hemi = new THREE.HemisphereLight(0xdbeafe, 0x1e293b, 0.35);
+    scene.add(hemi);
+
+    const keyLight = new THREE.DirectionalLight(0xfff4e6, 1.35);
+    keyLight.position.set(2.8, 4.4, 3.6);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    keyLight.shadow.camera.near = 0.5;
+    keyLight.shadow.camera.far = 14;
+    keyLight.shadow.camera.left = -2.2;
+    keyLight.shadow.camera.right = 2.2;
+    keyLight.shadow.camera.top = 2.6;
+    keyLight.shadow.camera.bottom = -1.2;
+    keyLight.shadow.bias = -0.0005;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0xbfdbfe, 0.48);
+    fillLight.position.set(-3.2, 1.8, 2.2);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0x93c5fd, 0.65);
+    rimLight.position.set(-1.2, 2.5, -3.5);
+    scene.add(rimLight);
+
+    const floorGeo = new THREE.CircleGeometry(1.6, 64);
+    floorGeo.rotateX(-Math.PI / 2);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x1a2233,
+      roughness: 0.85,
+      metalness: 0.05,
+    });
+    const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+    floorMesh.receiveShadow = true;
+    scene.add(floorMesh);
+
+    const grid = new THREE.GridHelper(3.0, 18, 0x3b82f6, 0x263248);
+    grid.position.y = 0.002;
+    if (Array.isArray(grid.material)) grid.material.forEach(m => { m.transparent = true; m.opacity = 0.35; });
+    else { grid.material.transparent = true; grid.material.opacity = 0.35; }
+    scene.add(grid);
+
+    const loader = new GLTFLoader();
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/draco/gltf/');
+    loader.setDRACOLoader(dracoLoader);
+
+    let active = false;
+    let wireframe = false;
+    let autoSpin = true;
+    let currentGroup = null;
+    let currentKey = null;
+    let loadToken = 0;
+    let defaultCamPos = new THREE.Vector3(1.0, 1.35, 3.0);
+    let defaultTarget = new THREE.Vector3(0, 0.88, 0);
+    let lastMeta = null;
+
+    function disposeObject(obj) {
+      if (!obj) return;
+      obj.traverse(child => {
+        if (child.isMesh) {
+          if (child.geometry) child.geometry.dispose();
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          for (const m of mats) {
+            if (!m) continue;
+            for (const val of Object.values(m)) {
+              if (val && val.isTexture) val.dispose();
+            }
+            m.dispose();
+          }
+        }
+      });
+    }
+
+    function applyWireframe(obj, flag) {
+      if (!obj) return;
+      obj.traverse(child => {
+        if (!child.isMesh) return;
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        for (const m of mats) if (m) m.wireframe = flag;
+      });
+    }
+
+    function resetCamera() {
+      camera.position.copy(defaultCamPos);
+      controls.target.copy(defaultTarget);
+      controls.update();
+    }
+
+    function syncBadges() {
+      if (!active) return;
+      const hint = document.getElementById('hintBadge');
+      const badge = document.getElementById('statsBadge');
+      if (!lastMeta) {
+        hint.textContent = 'Loading 3D mesh in Three.js PBR studio...';
+        badge.textContent = 'PBR 3D · Loading...';
+        return;
+      }
+      if (lastMeta.error) {
+        hint.textContent = lastMeta.error;
+        badge.textContent = 'PBR 3D · Load Error';
+        return;
+      }
+      const m = lastMeta;
+      const texLabel = m.hasColorTex
+        ? (m.hasNormalMap ? 'PBR + Normal' : 'UV Textured')
+        : (m.hasVertexCol ? 'Vertex-Color Draft' : 'Clay Mesh');
+      badge.textContent = `${texLabel} · ${(m.tris / 1000).toFixed(1)}k tris`;
+      if (!m.isCustom && !m.hasColorTex) {
+        hint.textContent = `${texLabel} (${m.label}) — drop a Meshy / Tripo3D / Rodin .GLB here to upgrade · Drag to orbit`;
+      } else {
+        hint.textContent = `${m.label} (${texLabel}) · Drag to orbit · Scroll to zoom · Double-click to reset`;
+      }
+    }
+
+    function mountScene(gltf, label, isCustom) {
+      if (currentGroup) {
+        scene.remove(currentGroup);
+        disposeObject(currentGroup);
+        currentGroup = null;
+      }
+
+      const root = new THREE.Group();
+      root.add(gltf.scene);
+
+      let tris = 0;
+      let hasColorTex = false;
+      let hasNormalMap = false;
+      let hasVertexCol = false;
+
+      root.traverse(child => {
+        if (!child.isMesh) return;
+        child.castShadow = true;
+        child.receiveShadow = true;
+        const geom = child.geometry;
+        if (geom) {
+          if (geom.index) tris += geom.index.count / 3;
+          else if (geom.attributes.position) tris += geom.attributes.position.count / 3;
+          if (!geom.attributes.normal) geom.computeVertexNormals();
+          if (geom.attributes.color) hasVertexCol = true;
+        }
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        for (const mat of mats) {
+          if (!mat) continue;
+          if (mat.map) {
+            hasColorTex = true;
+            mat.map.colorSpace = THREE.SRGBColorSpace;
+          }
+          if (mat.normalMap) hasNormalMap = true;
+          if (geom && geom.attributes.color && !mat.map) {
+            mat.vertexColors = true;
+            if (!mat.metalnessMap && !mat.roughnessMap) {
+              mat.metalness = Math.min(mat.metalness ?? 0.04, 0.06);
+              mat.roughness = Math.max(mat.roughness ?? 0.72, 0.60);
+            }
+          }
+          mat.wireframe = wireframe;
+          mat.needsUpdate = true;
+        }
+      });
+
+      // Normalize scale and rest model squarely on y = 0
+      const box = new THREE.Box3().setFromObject(root);
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+      const targetDim = 1.75;
+      const scale = targetDim / maxDim;
+      root.scale.setScalar(scale);
+      root.updateMatrixWorld(true);
+
+      const scaledBox = new THREE.Box3().setFromObject(root);
+      const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
+      const scaledSize = scaledBox.getSize(new THREE.Vector3());
+      root.position.set(-scaledCenter.x, -scaledBox.min.y, -scaledCenter.z);
+      root.updateMatrixWorld(true);
+
+      scene.add(root);
+      currentGroup = root;
+
+      const centerY = scaledSize.y * 0.50;
+      const dist = Math.max(scaledSize.y, Math.hypot(scaledSize.x, scaledSize.z)) * 1.78;
+      defaultTarget.set(0, centerY, 0);
+      defaultCamPos.set(dist * 0.34, centerY + dist * 0.14, dist * 0.93);
+      resetCamera();
+
+      lastMeta = {
+        label,
+        isCustom,
+        tris: Math.round(tris),
+        hasColorTex,
+        hasNormalMap,
+        hasVertexCol,
+      };
+      syncBadges();
+    }
+
+    async function loadFromUrl(url, label, isCustom, keyTag) {
+      const token = ++loadToken;
+      lastMeta = null;
+      syncBadges();
+      try {
+        const gltf = await loader.loadAsync(url);
+        if (token !== loadToken) {
+          disposeObject(gltf.scene);
+          return;
+        }
+        currentKey = keyTag;
+        mountScene(gltf, label, isCustom);
+      } catch (err) {
+        if (token !== loadToken) return;
+        currentKey = null;
+        const fileHint = location.protocol === 'file:'
+          ? 'Open via GitHub Pages or local HTTP server to load .GLB (or drop a .GLB file here)'
+          : `Failed to load .GLB: ${err.message || err}`;
+        lastMeta = { error: fileHint };
+        syncBadges();
+      }
+    }
+
+    async function loadFile(file) {
+      const token = ++loadToken;
+      lastMeta = null;
+      syncBadges();
+      const objUrl = URL.createObjectURL(file);
+      try {
+        const gltf = await loader.loadAsync(objUrl);
+        if (token !== loadToken) {
+          disposeObject(gltf.scene);
+          return;
+        }
+        currentKey = 'custom:' + file.name;
+        mountScene(gltf, file.name, true);
+      } catch (err) {
+        if (token !== loadToken) return;
+        currentKey = null;
+        lastMeta = { error: `Could not parse ${file.name}: ${err.message || err}` };
+        syncBadges();
+      } finally {
+        URL.revokeObjectURL(objUrl);
+      }
+    }
+
+    function resize() {
+      const r = threeHost.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return;
+      camera.aspect = r.width / r.height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(r.width, r.height, false);
+    }
+
+    function setActive(flag) {
+      active = Boolean(flag);
+      if (active) {
+        resize();
+        syncBadges();
+      }
+    }
+
+    const subjLabels = {
+      boat: 'Boat Outfit',
+      denim: 'Denim Look',
+      dog: 'Cavalier Dog',
+    };
+
+    function loadSubject(subj) {
+      const key = 'subj:' + subj;
+      if (currentKey === key && currentGroup) {
+        syncBadges();
+        return;
+      }
+      const paths = window.__STUDIO_PHOTOREAL_PATHS || {};
+      const url = paths[subj];
+      if (!url) return;
+      loadFromUrl(url, subjLabels[subj] || subj, false, key);
+    }
+
+    renderer.domElement.addEventListener('dblclick', resetCamera);
+    document.getElementById('btnThreeReset').addEventListener('click', resetCamera);
+    document.getElementById('btnThreeSpin').addEventListener('click', e => {
+      autoSpin = !autoSpin;
+      controls.autoRotate = autoSpin;
+      e.currentTarget.classList.toggle('pill-active', autoSpin);
+    });
+    document.getElementById('btnThreeWire').addEventListener('click', e => {
+      wireframe = !wireframe;
+      applyWireframe(currentGroup, wireframe);
+      e.currentTarget.classList.toggle('pill-active', wireframe);
+    });
+
+    new ResizeObserver(resize).observe(threeHost);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (!active) return;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    requestAnimationFrame(animate);
+
+    window.ThreePBRViewer = {
+      setActive,
+      resize,
+      loadSubject,
+      loadFile,
+      syncBadges,
+      resetCamera,
+    };
+    if (window.__syncStudioUI) window.__syncStudioUI();
+  } catch (err) {
+    window.__threeViewerInitError = err && err.message ? err.message : String(err);
+    if (window.__syncStudioUI) window.__syncStudioUI();
+  }
 })();
 </script>
 </body>
