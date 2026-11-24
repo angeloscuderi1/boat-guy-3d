@@ -684,11 +684,6 @@ function buildBoatGuyModel(Engine) {
     deform: (x,y,z) => z > 0.015 ? [x*0.76, y, z*0.52 + y*0.22] : [x*1.02, y, z*1.02 + y*0.22],
   }));
 
-  mb.addTorus('dog_harness_chest', 'dog', M.harness, 0.095, 0.011, dogTf(0, 0.245, 0.034, { rx: 0.36, sx: 0.96, sz: 1.06, segU: 28, segV: 10 }));
-  mb.addTorus('dog_harness_belly', 'dog', M.harness, 0.100, 0.011, dogTf(0, 0.165, 0.016, { rx: 0.18, sx: 0.98, sz: 1.12, segU: 28, segV: 10 }));
-  mb.addRoundedBox('dog_harness_backpad', 'dog', M.harness, 0.074, 0.092, 0.022, dogTf(0, 0.215, -0.076, { rx: 0.28, segU: 12, segV: 10 }));
-  mb.addTorus('dog_harness_ring', 'dog', M.silver, 0.013, 0.0035, dogTf(0, 0.245, -0.092, { rx: Math.PI/2, segU: 14, segV: 8 }));
-
   for (const side of [-1, 1]) {
     mb.addEllipsoid(`dog_haunch_${side}`, 'dog', M.dogWhite, dogTf(side*0.082, 0.082, -0.025, { radX: 0.052, radY: 0.078, radZ: 0.082, rx: 0.15, segU: 18, segV: 12 }));
     mb.addEllipsoid(`dog_back_paw_${side}`, 'dog', M.dogWhite, dogTf(side*0.086, 0.024, 0.048, { radX: 0.032, radY: 0.024, radZ: 0.048, segU: 14, segV: 10 }));

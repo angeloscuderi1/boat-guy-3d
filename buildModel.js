@@ -613,20 +613,6 @@
       },
     }));
 
-    // Fitted Sage/Olive-Green Padded Harness (snug against chest & belly fur!)
-    mb.addTorus('dog_harness_chest', 'dog', M.harness, 0.095, 0.011, dogTf(0, 0.245, 0.034, {
-      rx: 0.36, sx: 0.96, sz: 1.06, segU: 28, segV: 10,
-    }));
-    mb.addTorus('dog_harness_belly', 'dog', M.harness, 0.100, 0.011, dogTf(0, 0.165, 0.016, {
-      rx: 0.18, sx: 0.98, sz: 1.12, segU: 28, segV: 10,
-    }));
-    mb.addRoundedBox('dog_harness_backpad', 'dog', M.harness, 0.074, 0.092, 0.022, dogTf(0, 0.215, -0.076, {
-      rx: 0.28, segU: 12, segV: 10,
-    }));
-    mb.addTorus('dog_harness_ring', 'dog', M.silver, 0.013, 0.0035, dogTf(0, 0.245, -0.092, {
-      rx: Math.PI / 2, segU: 14, segV: 8,
-    }));
-
     // Seated hind haunches + tucked back paws + clean straight front legs
     for (const side of [-1, 1]) {
       mb.addEllipsoid(`dog_haunch_${side}`, 'dog', M.dogWhite, dogTf(side * 0.082, 0.082, -0.025, {
