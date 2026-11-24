@@ -124,13 +124,15 @@
     <div id="ftrPhoto" class="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs">
       <div class="flex items-center gap-1.5 flex-wrap">
         <span class="text-[var(--muted-foreground)]">View:</span>
-        <button data-pview="sheet" class="pview-btn pill pill-active px-2 py-1 rounded border border-[var(--border)]">3-View Sheet</button>
+        <button data-pview="mesh3d" class="pview-btn pill pill-active px-2.5 py-1 rounded border border-[var(--border)] font-medium">Photorealistic 3D Mesh</button>
+        <button data-pview="sheet" class="pview-btn pill px-2 py-1 rounded border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]">3-View Sheet</button>
         <button data-pview="scrub" class="pview-btn pill px-2 py-1 rounded border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]">Turntable Scrub</button>
         <button data-pview="rig3d" class="pview-btn pill px-2 py-1 rounded border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]">3D Reference Planes</button>
       </div>
-      <div class="flex items-center gap-1.5">
-        <button id="btnDlSheet" class="px-2.5 py-1 rounded font-medium bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90">Download Sheet (.PNG)</button>
-        <button id="btnDlViews" class="px-2.5 py-1 rounded font-medium border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]">Download 3 Crops</button>
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <button id="btnDlPhotoGLB" class="px-2.5 py-1 rounded font-medium bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90">Download Photoreal .GLB</button>
+        <button id="btnDlSheet" class="px-2.5 py-1 rounded font-medium border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]">Sheet (.PNG)</button>
+        <button id="btnDlViews" class="px-2.5 py-1 rounded font-medium border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]">3 Crops</button>
       </div>
     </div>
   </div>
@@ -484,34 +486,34 @@ function buildBoatGuyModel(Engine) {
     });
     mb.addTorus(`shoe_collar_${side}`, 'body', M.fleece, 0.046, 0.012, { x: sx, y: 0.175, z: sz-0.015, ry: rotY, segU: 18, segV: 10 });
   }
-  addShoe('R', gx - 0.11, 0.0, -0.16);
-  addShoe('L', gx + 0.11, 0.01, 0.14);
+  addShoe('R', gx - 0.094, 0.0, -0.14);
+  addShoe('L', gx + 0.094, 0.01, 0.14);
 
   function addLeg(side, lx, lz) {
     mb.addLathe(`leg_${side}`, 'body', M.khaki, [
-      [0.056,0.165,0.058],[0.062,0.20,0.064],[0.068,0.38,0.070],[0.075,0.54,0.078],[0.088,0.72,0.090],[0.092,0.82,0.092]
+      [0.052,0.165,0.054],[0.057,0.22,0.059],[0.063,0.40,0.065],[0.069,0.56,0.072],[0.078,0.74,0.082],[0.082,0.85,0.085]
     ], { x: lx, z: lz, segs: 24 });
   }
-  addLeg('R', gx - 0.105, -0.01);
-  addLeg('L', gx + 0.105, 0.00);
+  addLeg('R', gx - 0.090, -0.008);
+  addLeg('L', gx + 0.090, 0.000);
 
-  mb.addEllipsoid('hips', 'body', M.khaki, { radX: 0.195, radY: 0.115, radZ: 0.125, x: gx, y: 0.81, z: -0.005, segU: 26, segV: 16 });
-  mb.addLathe('belt', 'body', M.belt, [[0.190,0.845,0.122],[0.192,0.885,0.124]], { x: gx, z: -0.005, segs: 28 });
-  mb.addRoundedBox('belt_buckle', 'body', M.silver, 0.045, 0.036, 0.016, { x: gx, y: 0.865, z: 0.122, segU: 10, segV: 8 });
+  mb.addLathe('hips', 'body', M.khaki, [[0.142,0.76,0.086],[0.164,0.80,0.096],[0.168,0.86,0.098]], { x: gx, z: -0.005, segs: 28 });
+  mb.addLathe('belt', 'body', M.belt, [[0.168,0.848,0.098],[0.169,0.884,0.099]], { x: gx, z: -0.005, segs: 28 });
+  mb.addRoundedBox('belt_buckle', 'body', M.silver, 0.042, 0.034, 0.014, { x: gx, y: 0.866, z: 0.098, segU: 10, segV: 8 });
 
   mb.addLathe('torso_fleece', 'body', M.fleece, [
-    [0.196,0.85,0.128],[0.202,0.90,0.132],[0.194,1.02,0.128],[0.215,1.18,0.138],[0.232,1.31,0.138],[0.210,1.39,0.122],[0.115,1.43,0.098]
+    [0.172,0.855,0.103],[0.174,0.91,0.104],[0.178,1.03,0.108],[0.202,1.19,0.120],[0.220,1.31,0.124],[0.198,1.39,0.112],[0.110,1.43,0.094]
   ], {
     x: gx, z: -0.005, segs: 32,
-    deform: (x,y,z) => [x, y, z + ((y>1.10 && y<1.35 && z>0) ? 0.018*Math.sin(((y-1.10)/0.25)*Math.PI) : 0)],
+    deform: (x,y,z) => [x, y, z + ((y>1.12 && y<1.34 && z>0) ? 0.014*Math.sin(((y-1.12)/0.22)*Math.PI) : 0)],
   });
   mb.addLathe('fleece_collar', 'body', M.fleeceDark, [[0.115,1.39,0.105],[0.112,1.46,0.102],[0.104,1.48,0.095]], {
     x: gx, z: -0.005, segs: 28,
     deform: (x,y,z) => [x, y - (z>0.04 && Math.abs(x)<0.055 ? (1-Math.abs(x)/0.055)*0.055 : 0), z],
   });
   mb.addEllipsoid('white_tee_v', 'body', M.whiteTee, { radX: 0.068, radY: 0.058, radZ: 0.052, x: gx, y: 1.405, z: 0.058, segU: 18, segV: 12 });
-  mb.addRoundedBox('zipper_seam', 'body', M.fleeceDark, 0.012, 0.17, 0.012, { x: gx, y: 1.285, z: 0.145, rx: 0.08, segU: 8, segV: 8 });
-  mb.addRoundedBox('zipper_pull', 'body', M.silver, 0.014, 0.026, 0.010, { x: gx, y: 1.345, z: 0.152, rx: -0.15, segU: 8, segV: 8 });
+  mb.addRoundedBox('zipper_seam', 'body', M.fleeceDark, 0.011, 0.17, 0.010, { x: gx, y: 1.285, z: 0.126, rx: 0.08, segU: 8, segV: 8 });
+  mb.addRoundedBox('zipper_pull', 'body', M.silver, 0.013, 0.024, 0.009, { x: gx, y: 1.345, z: 0.132, rx: -0.15, segU: 8, segV: 8 });
 
   mb.addEllipsoid('shoulder_R', 'body', M.fleece, { radX: 0.082, radY: 0.082, radZ: 0.082, x: gx-0.225, y: 1.31, z: -0.005, segU: 20, segV: 14 });
   mb.addEllipsoid('shoulder_L', 'body', M.fleece, { radX: 0.082, radY: 0.082, radZ: 0.082, x: gx+0.225, y: 1.31, z: -0.005, segU: 20, segV: 14 });
@@ -672,41 +674,46 @@ function buildBoatGuyModel(Engine) {
   const dogTf = (lx, ly, lz, extra = {}) => ({ ...extra, x: dx+lx*cD+lz*sD, y: dy+ly, z: dz-lx*sD+lz*cD, ry: (extra.ry??0)+dRotY });
   const dogPt = (lx, ly, lz) => [dx+lx*cD+lz*sD, dy+ly, dz-lx*sD+lz*cD];
 
-  mb.addEllipsoid('dog_torso_white', 'dog', M.dogWhite, dogTf(0, 0.21, -0.02, { radX: 0.125, radY: 0.175, radZ: 0.145, rx: 0.22, segU: 26, segV: 18 }));
-  mb.addEllipsoid('dog_chest_fluff', 'dog', M.dogWhite, dogTf(0, 0.25, 0.08, { radX: 0.095, radY: 0.115, radZ: 0.085, segU: 20, segV: 14 }));
-  mb.addEllipsoid('dog_back_patch', 'dog', M.dogBrown, dogTf(0, 0.22, -0.065, { radX: 0.124, radY: 0.145, radZ: 0.115, rx: 0.25, segU: 22, segV: 16 }));
-  mb.addEllipsoid('dog_rump_patch', 'dog', M.dogBrown, dogTf(-0.04, 0.12, -0.10, { radX: 0.105, radY: 0.095, radZ: 0.105, segU: 18, segV: 12 }));
+  mb.addLathe('dog_torso_white', 'dog', M.dogWhite, [
+    [0.088,0.02,0.102],[0.102,0.08,0.118],[0.098,0.16,0.114],[0.090,0.24,0.102],[0.072,0.30,0.080],[0.058,0.34,0.064]
+  ], dogTf(0, 0.0, -0.02, { segs: 28, deform: (x,y,z) => [x, y, z + y*0.22] }));
+  mb.addLathe('dog_back_patch', 'dog', M.dogBrown, [
+    [0.092,0.06,0.115],[0.101,0.15,0.117],[0.093,0.23,0.104],[0.076,0.29,0.082]
+  ], dogTf(0, 0.0, -0.024, {
+    segs: 26,
+    deform: (x,y,z) => z > 0.015 ? [x*0.76, y, z*0.52 + y*0.22] : [x*1.02, y, z*1.02 + y*0.22],
+  }));
 
-  mb.addTorus('dog_harness_chest', 'dog', M.harness, 0.112, 0.022, dogTf(0, 0.28, 0.02, { rx: 0.42, segU: 24, segV: 10 }));
-  mb.addTorus('dog_harness_belly', 'dog', M.harness, 0.124, 0.020, dogTf(0, 0.20, -0.02, { rx: 0.22, segU: 24, segV: 10 }));
-  mb.addRoundedBox('dog_harness_backpad', 'dog', M.harness, 0.095, 0.11, 0.032, dogTf(0, 0.26, -0.12, { rx: 0.30, segU: 12, segV: 10 }));
-  mb.addTorus('dog_harness_ring', 'dog', M.silver, 0.016, 0.004, dogTf(0, 0.29, -0.145, { rx: Math.PI/2, segU: 14, segV: 8 }));
+  mb.addTorus('dog_harness_chest', 'dog', M.harness, 0.095, 0.011, dogTf(0, 0.245, 0.034, { rx: 0.36, sx: 0.96, sz: 1.06, segU: 28, segV: 10 }));
+  mb.addTorus('dog_harness_belly', 'dog', M.harness, 0.100, 0.011, dogTf(0, 0.165, 0.016, { rx: 0.18, sx: 0.98, sz: 1.12, segU: 28, segV: 10 }));
+  mb.addRoundedBox('dog_harness_backpad', 'dog', M.harness, 0.074, 0.092, 0.022, dogTf(0, 0.215, -0.076, { rx: 0.28, segU: 12, segV: 10 }));
+  mb.addTorus('dog_harness_ring', 'dog', M.silver, 0.013, 0.0035, dogTf(0, 0.245, -0.092, { rx: Math.PI/2, segU: 14, segV: 8 }));
 
   for (const side of [-1, 1]) {
-    mb.addEllipsoid(`dog_haunch_${side}`, 'dog', M.dogWhite, dogTf(side*0.105, 0.10, -0.03, { radX: 0.068, radY: 0.095, radZ: 0.095, segU: 16, segV: 12 }));
-    mb.addEllipsoid(`dog_back_paw_${side}`, 'dog', M.dogWhite, dogTf(side*0.105, 0.032, 0.06, { radX: 0.042, radY: 0.032, radZ: 0.062, segU: 14, segV: 10 }));
-    mb.addTube(`dog_front_leg_${side}`, 'dog', M.dogWhite, [dogPt(side*0.065,0.24,0.075), dogPt(side*0.062,0.14,0.105), dogPt(side*0.060,0.04,0.118)], [0.038,0.033,0.032], { segs: 14 });
-    mb.addEllipsoid(`dog_front_paw_${side}`, 'dog', M.dogWhite, dogTf(side*0.060, 0.028, 0.142, { radX: 0.036, radY: 0.026, radZ: 0.048, segU: 14, segV: 10 }));
+    mb.addEllipsoid(`dog_haunch_${side}`, 'dog', M.dogWhite, dogTf(side*0.082, 0.082, -0.025, { radX: 0.052, radY: 0.078, radZ: 0.082, rx: 0.15, segU: 18, segV: 12 }));
+    mb.addEllipsoid(`dog_back_paw_${side}`, 'dog', M.dogWhite, dogTf(side*0.086, 0.024, 0.048, { radX: 0.032, radY: 0.024, radZ: 0.048, segU: 14, segV: 10 }));
+    mb.addTube(`dog_front_leg_${side}`, 'dog', M.dogWhite, [dogPt(side*0.054,0.21,0.062), dogPt(side*0.050,0.12,0.084), dogPt(side*0.048,0.03,0.094)], [0.031,0.027,0.025], { segs: 14 });
+    mb.addEllipsoid(`dog_front_paw_${side}`, 'dog', M.dogWhite, dogTf(side*0.048, 0.022, 0.116, { radX: 0.029, radY: 0.020, radZ: 0.040, segU: 14, segV: 10 }));
   }
-  mb.addTube('dog_tail', 'dog', M.dogWhite, [dogPt(0,0.08,-0.14), dogPt(0.05,0.07,-0.22), dogPt(0.12,0.11,-0.27), dogPt(0.17,0.16,-0.25)], [0.028,0.042,0.046,0.024], { segs: 14 });
+  mb.addTube('dog_tail', 'dog', M.dogWhite, [dogPt(0,0.065,-0.115), dogPt(0.045,0.055,-0.175), dogPt(0.110,0.072,-0.195), dogPt(0.155,0.105,-0.165), dogPt(0.168,0.130,-0.125)], [0.022,0.032,0.036,0.030,0.016], { segs: 14 });
 
-  const dhY = 0.445, dhZ = 0.085;
-  mb.addEllipsoid('dog_head_white', 'dog', M.dogWhite, dogTf(0, dhY, dhZ, { radX: 0.112, radY: 0.108, radZ: 0.115, rx: -0.15, segU: 26, segV: 18 }));
+  const dhY = 0.378, dhZ = 0.062;
+  mb.addEllipsoid('dog_head_white', 'dog', M.dogWhite, dogTf(0, dhY, dhZ, { radX: 0.096, radY: 0.094, radZ: 0.102, rx: -0.10, segU: 28, segV: 20 }));
   for (const side of [-1, 1]) {
-    mb.addEllipsoid(`dog_face_patch_${side}`, 'dog', M.dogBrown, dogTf(side*0.064, dhY+0.020, dhZ+0.015, { radX: 0.062, radY: 0.082, radZ: 0.095, rx: -0.12, ry: side*0.15, segU: 18, segV: 14 }));
+    mb.addEllipsoid(`dog_face_patch_${side}`, 'dog', M.dogBrown, dogTf(side*0.046, dhY+0.014, dhZ+0.008, { radX: 0.054, radY: 0.072, radZ: 0.084, rx: -0.08, ry: side*0.10, segU: 20, segV: 14 }));
   }
-  mb.addEllipsoid('dog_muzzle', 'dog', M.dogWhite, dogTf(0, dhY-0.032, dhZ+0.105, { radX: 0.056, radY: 0.044, radZ: 0.058, segU: 18, segV: 12 }));
-  mb.addEllipsoid('dog_nose', 'dog', M.dogNose, dogTf(0, dhY-0.015, dhZ+0.158, { radX: 0.024, radY: 0.018, radZ: 0.018, segU: 14, segV: 10 }));
-  mb.addEllipsoid('dog_tongue', 'dog', M.dogTongue, dogTf(0, dhY-0.064, dhZ+0.135, { radX: 0.018, radY: 0.016, radZ: 0.022, rx: 0.4, segU: 12, segV: 8 }));
+  mb.addEllipsoid('dog_muzzle', 'dog', M.dogWhite, dogTf(0, dhY-0.026, dhZ+0.092, { radX: 0.046, radY: 0.036, radZ: 0.048, segU: 18, segV: 12 }));
+  mb.addEllipsoid('dog_nose', 'dog', M.dogNose, dogTf(0, dhY-0.012, dhZ+0.136, { radX: 0.020, radY: 0.015, radZ: 0.015, segU: 14, segV: 10 }));
+  mb.addEllipsoid('dog_tongue', 'dog', M.dogTongue, dogTf(0, dhY-0.052, dhZ+0.114, { radX: 0.014, radY: 0.012, radZ: 0.018, rx: 0.4, segU: 12, segV: 8 }));
   for (const side of [-1, 1]) {
-    mb.addEllipsoid(`dog_eye_${side}`, 'dog', M.dogNose, dogTf(side*0.048, dhY+0.010, dhZ+0.096, { radX: 0.022, radY: 0.023, radZ: 0.018, segU: 14, segV: 12 }));
-    mb.addEllipsoid(`dog_eye_glint_${side}`, 'dog', M.teeth, dogTf(side*0.048+0.007, dhY+0.018, dhZ+0.111, { radX: 0.006, radY: 0.006, radZ: 0.006, segU: 8, segV: 6 }));
+    mb.addEllipsoid(`dog_eye_${side}`, 'dog', M.dogNose, dogTf(side*0.042, dhY+0.008, dhZ+0.086, { radX: 0.019, radY: 0.020, radZ: 0.015, segU: 14, segV: 12 }));
+    mb.addEllipsoid(`dog_eye_glint_${side}`, 'dog', M.teeth, dogTf(side*0.042+0.006, dhY+0.015, dhZ+0.099, { radX: 0.005, radY: 0.005, radZ: 0.005, segU: 8, segV: 6 }));
     mb.addTube(`dog_ear_main_${side}`, 'dog', M.dogEar, [
-      dogPt(side*0.095,dhY+0.045,dhZ-0.005), dogPt(side*0.138,dhY-0.015,dhZ+0.005), dogPt(side*0.148,dhY-0.115,dhZ+0.012), dogPt(side*0.136,dhY-0.195,dhZ+0.002)
-    ], [0.036,0.048,0.052,0.036], { segs: 16, ovalX: 0.65, ovalY: 1.25 });
+      dogPt(side*0.076,dhY+0.038,dhZ-0.006), dogPt(side*0.104,dhY-0.005,dhZ+0.004), dogPt(side*0.112,dhY-0.068,dhZ+0.010), dogPt(side*0.106,dhY-0.125,dhZ+0.004), dogPt(side*0.095,dhY-0.160,dhZ-0.004)
+    ], [0.024,0.032,0.035,0.030,0.016], { segs: 16, ovalX: 0.50, ovalY: 1.05 });
     mb.addTube(`dog_ear_curl_${side}`, 'dog', M.dogBrown, [
-      dogPt(side*0.092,dhY+0.032,dhZ-0.035), dogPt(side*0.135,dhY-0.040,dhZ-0.038), dogPt(side*0.142,dhY-0.135,dhZ-0.032), dogPt(side*0.125,dhY-0.205,dhZ-0.028)
-    ], [0.030,0.042,0.045,0.030], { segs: 14, ovalX: 0.65, ovalY: 1.15 });
+      dogPt(side*0.074,dhY+0.028,dhZ-0.032), dogPt(side*0.102,dhY-0.022,dhZ-0.032), dogPt(side*0.108,dhY-0.082,dhZ-0.026), dogPt(side*0.098,dhY-0.140,dhZ-0.022)
+    ], [0.020,0.028,0.030,0.018], { segs: 14, ovalX: 0.50, ovalY: 1.0 });
   }
   return mb.parts;
 }
@@ -873,6 +880,179 @@ function buildBoatGuyModel(Engine) {
     }`
   );
 
+  // ---- Shader 3: Photorealistic Vertex-Colored GLB Mesh ----
+  const progVCol = makeProgram(
+    `#version 300 es
+    precision highp float;
+    layout(location=0) in vec3 aPos;
+    layout(location=1) in vec3 aNorm;
+    layout(location=2) in vec3 aCol;
+    uniform mat4 uVP;
+    out vec3 vPos;
+    out vec3 vNorm;
+    out vec3 vCol;
+    void main() {
+      vPos = aPos;
+      vNorm = aNorm;
+      vCol = aCol;
+      gl_Position = uVP * vec4(aPos, 1.0);
+    }`,
+    `#version 300 es
+    precision highp float;
+    in vec3 vPos;
+    in vec3 vNorm;
+    in vec3 vCol;
+    uniform vec3 uCamPos;
+    out vec4 fragColor;
+    vec3 aces(vec3 x) {
+      return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+    }
+    void main() {
+      vec3 N = normalize(gl_FrontFacing ? vNorm : -vNorm);
+      vec3 V = normalize(uCamPos - vPos);
+      vec3 albedo = pow(clamp(vCol, 0.0, 1.0), vec3(2.2));
+      vec3 keyDir  = normalize(vec3(0.48, 0.72, 0.78));
+      vec3 fillDir = normalize(vec3(-0.75, 0.35, 0.55));
+      vec3 rimDir  = normalize(vec3(-0.20, 0.50, -0.85));
+      float hemi = N.y * 0.5 + 0.5;
+      float ao = smoothstep(0.0, 0.18, vPos.y) * 0.18 + 0.82;
+      vec3 amb = mix(vec3(0.28, 0.27, 0.28), vec3(0.55, 0.58, 0.64), hemi) * ao;
+      float ndlK = max(dot(N, keyDir), 0.0);
+      float ndlF = max(dot(N, fillDir), 0.0);
+      float fres = pow(1.0 - max(dot(N, V), 0.0), 3.2);
+      float ndlR = max(dot(N, rimDir), 0.0);
+      vec3 col = albedo * (amb + ndlK * vec3(1.05, 1.02, 0.98) + ndlF * vec3(0.45, 0.48, 0.54));
+      col += albedo * (ndlR * 0.25 + fres * 0.22) * vec3(0.75, 0.82, 0.95);
+      col = pow(aces(col), vec3(1.0 / 2.2));
+      fragColor = vec4(col, 1.0);
+    }`
+  );
+  const vLoc = {
+    VP: gl.getUniformLocation(progVCol, 'uVP'),
+    Cam: gl.getUniformLocation(progVCol, 'uCamPos'),
+  };
+
+  // Minimal binary GLB parser + WebGL2 buffer builder for vertex-colored photoreal meshes
+  function parseGLB(buffer) {
+    const dv = new DataView(buffer);
+    const jsonLen = dv.getUint32(12, true);
+    const gltf = JSON.parse(new TextDecoder().decode(new Uint8Array(buffer, 20, jsonLen)));
+    const binOffset = 20 + jsonLen + 8;
+
+    function readAccessor(accIdx) {
+      const acc = gltf.accessors[accIdx];
+      const bv = gltf.bufferViews[acc.bufferView];
+      const start = binOffset + (bv.byteOffset || 0) + (acc.byteOffset || 0);
+      const comps = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 }[acc.type];
+      const stride = bv.byteStride || 0;
+      const cType = acc.componentType;
+      const count = acc.count;
+
+      if (stride === 0) {
+        if (cType === 5126) return { data: new Float32Array(buffer.slice(start, start + count * comps * 4)), comps, cType };
+        if (cType === 5125) return { data: new Uint32Array(buffer.slice(start, start + count * comps * 4)), comps, cType };
+        if (cType === 5123) return { data: new Uint16Array(buffer.slice(start, start + count * comps * 2)), comps, cType };
+        if (cType === 5121) return { data: new Uint8Array(buffer.slice(start, start + count * comps)), comps, cType };
+      }
+      // Strided fallback
+      const out = cType === 5125 ? new Uint32Array(count * comps) : new Float32Array(count * comps);
+      const elemBytes = cType === 5126 || cType === 5125 ? 4 : cType === 5123 ? 2 : 1;
+      const step = stride || (comps * elemBytes);
+      for (let i = 0; i < count; i++) {
+        const base = start + i * step;
+        for (let k = 0; k < comps; k++) {
+          const p = base + k * elemBytes;
+          if (cType === 5126) out[i * comps + k] = dv.getFloat32(p, true);
+          else if (cType === 5125) out[i * comps + k] = dv.getUint32(p, true);
+          else if (cType === 5123) out[i * comps + k] = dv.getUint16(p, true) / (acc.normalized ? 65535 : 1);
+          else if (cType === 5121) out[i * comps + k] = dv.getUint8(p) / (acc.normalized ? 255 : 1);
+        }
+      }
+      return { data: out, comps, cType: cType === 5125 ? 5125 : 5126 };
+    }
+
+    const prim = gltf.meshes[0].primitives[0];
+    const posAcc = readAccessor(prim.attributes.POSITION);
+    const positions = posAcc.data;
+    const vertCount = positions.length / 3;
+
+    let indices, idxType = gl.UNSIGNED_INT;
+    if (prim.indices !== undefined) {
+      const idxAcc = readAccessor(prim.indices);
+      indices = idxAcc.data;
+      idxType = idxAcc.cType === 5123 ? gl.UNSIGNED_SHORT : gl.UNSIGNED_INT;
+    } else {
+      indices = new Uint32Array(vertCount);
+      for (let i = 0; i < vertCount; i++) indices[i] = i;
+    }
+
+    let normals;
+    if (prim.attributes.NORMAL !== undefined) {
+      normals = readAccessor(prim.attributes.NORMAL).data;
+    } else {
+      normals = new Float32Array(positions.length);
+      for (let i = 0; i < indices.length; i += 3) {
+        const i0 = indices[i] * 3, i1 = indices[i + 1] * 3, i2 = indices[i + 2] * 3;
+        const ax = positions[i1] - positions[i0], ay = positions[i1 + 1] - positions[i0 + 1], az = positions[i1 + 2] - positions[i0 + 2];
+        const bx = positions[i2] - positions[i0], by = positions[i2 + 1] - positions[i0 + 1], bz = positions[i2 + 2] - positions[i0 + 2];
+        const nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+        normals[i0] += nx; normals[i0 + 1] += ny; normals[i0 + 2] += nz;
+        normals[i1] += nx; normals[i1 + 1] += ny; normals[i1 + 2] += nz;
+        normals[i2] += nx; normals[i2 + 1] += ny; normals[i2 + 2] += nz;
+      }
+      for (let i = 0; i < normals.length; i += 3) {
+        const l = Math.hypot(normals[i], normals[i + 1], normals[i + 2]) || 1;
+        normals[i] /= l; normals[i + 1] /= l; normals[i + 2] /= l;
+      }
+    }
+
+    const colors = new Float32Array(vertCount * 3);
+    if (prim.attributes.COLOR_0 !== undefined) {
+      const colAcc = readAccessor(prim.attributes.COLOR_0);
+      const scale = colAcc.cType === 5121 ? 1 / 255 : colAcc.cType === 5123 ? 1 / 65535 : 1;
+      for (let i = 0; i < vertCount; i++) {
+        colors[i * 3] = colAcc.data[i * colAcc.comps] * scale;
+        colors[i * 3 + 1] = colAcc.data[i * colAcc.comps + 1] * scale;
+        colors[i * 3 + 2] = colAcc.data[i * colAcc.comps + 2] * scale;
+      }
+    } else {
+      colors.fill(0.8);
+    }
+
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    const vboP = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vboP); gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+    const vboN = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vboN); gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+    const vboC = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vboC); gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 0, 0);
+    const ebo = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+    gl.bindVertexArray(null);
+    return { vao, count: indices.length, idxType, verts: vertCount, tris: Math.round(indices.length / 3) };
+  }
+
+  const photorealPaths = {
+    boat: './output/photoreal_boat_guy.glb',
+    denim: './output/photoreal_denim_guy.glb',
+    dog: './output/photoreal_cavalier_dog.glb',
+  };
+  const photorealCache = {};
+  function ensurePhotorealMesh(subj) {
+    if (photorealCache[subj]) return;
+    photorealCache[subj] = { status: 'loading' };
+    fetch(photorealPaths[subj])
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+      .then(buf => {
+        photorealCache[subj] = { status: 'ready', mesh: parseGLB(buf) };
+        if (state.mainMode === 'photo' && state.photoView === 'mesh3d' && state.photoSubj === subj) syncUI();
+      })
+      .catch(err => {
+        photorealCache[subj] = { status: 'error', error: err.message };
+        if (state.mainMode === 'photo' && state.photoView === 'mesh3d' && state.photoSubj === subj) syncUI();
+      });
+  }
+
   // Mesh uniforms
   const mLoc = {
     VP: gl.getUniformLocation(progMesh, 'uVP'),
@@ -1008,14 +1188,22 @@ function buildBoatGuyModel(Engine) {
   const state = {
     mainMode: 'photo',     // 'stylized' | 'photo'
     photoSubj: 'boat',     // 'boat' | 'denim' | 'dog'
-    photoView: 'sheet',    // 'sheet' | 'scrub' | 'rig3d'
+    photoView: 'mesh3d',   // 'mesh3d' | 'sheet' | 'scrub' | 'rig3d'
     scrubAngle: 0,         // 0=Front, 1=LeftSide, 2=Back, 3=RightSide(Mirror)
     autoTurn: true,
-    yaw: 0.32, pitch: 0.16, dist: 3.10,
-    target: [0.02, 0.96, 0.02],
+    yaw: 0.34, pitch: 0.14, dist: 2.85,
+    target: [0.0, 0.92, 0.0],
     spin: false, animate: true, sunset: true,
     toggles: { cap: true, sunglasses: true, dog: true, helm: true },
   };
+
+  function framePhotoreal() {
+    if (state.photoSubj === 'dog') {
+      state.target = [0.0, 0.28, 0.0]; state.dist = 1.25; state.yaw = 0.44; state.pitch = 0.16;
+    } else {
+      state.target = [0.0, 0.92, 0.0]; state.dist = 2.85; state.yaw = 0.32; state.pitch = 0.14;
+    }
+  }
 
   function getActiveGroups() {
     const s = new Set(['base', 'body']);
@@ -1028,7 +1216,7 @@ function buildBoatGuyModel(Engine) {
 
   function syncUI() {
     const isStylized = state.mainMode === 'stylized';
-    const useGL = isStylized || state.photoView === 'rig3d';
+    const useGL = isStylized || state.photoView === 'rig3d' || state.photoView === 'mesh3d';
 
     document.getElementById('tabStylized').classList.toggle('mode-tab-active', isStylized);
     document.getElementById('tabPhoto').classList.toggle('mode-tab-active', !isStylized);
@@ -1050,6 +1238,19 @@ function buildBoatGuyModel(Engine) {
       let tris = 0;
       for (const p of parts) if (active.has(p.group)) tris += p.indices.length / 3;
       badge.textContent = `Stylized · ${(tris/1000).toFixed(1)}k tris`;
+    } else if (state.photoView === 'mesh3d') {
+      ensurePhotorealMesh(state.photoSubj);
+      const entry = photorealCache[state.photoSubj];
+      if (!entry || entry.status === 'loading') {
+        hint.textContent = 'Loading photorealistic TripoSR 3D .GLB mesh...';
+        badge.textContent = 'Photoreal 3D · Loading...';
+      } else if (entry.status === 'error') {
+        hint.textContent = 'Open on GitHub Pages or local HTTP server to stream .GLB (file:// blocks fetch)';
+        badge.textContent = 'Photoreal 3D · Serve via HTTP';
+      } else {
+        hint.textContent = 'Real TripoSR photorealistic 3D mesh · Drag to orbit · Scroll to zoom';
+        badge.textContent = `Photoreal 3D · ${(entry.mesh.tris / 1000).toFixed(1)}k tris`;
+      }
     } else if (state.photoView === 'sheet') {
       hint.textContent = 'Clean A-pose Front · Side · Back sheet for Meshy, Tripo3D, or Blender';
       badge.textContent = 'Photorealistic · 3-View Sheet';
@@ -1085,6 +1286,7 @@ function buildBoatGuyModel(Engine) {
   document.getElementById('tabPhoto').addEventListener('click', () => {
     state.mainMode = 'photo';
     if (state.photoView === 'rig3d') { state.target = [0, 0.96, 0]; state.dist = 2.85; }
+    else if (state.photoView === 'mesh3d') { framePhotoreal(); }
     syncUI();
   });
 
@@ -1097,6 +1299,10 @@ function buildBoatGuyModel(Engine) {
         b.classList.toggle('pill-active', on);
         b.classList.toggle('bg-[var(--card)]', !on);
       });
+      if (state.photoView === 'mesh3d') {
+        framePhotoreal();
+        syncUI();
+      }
     });
   });
 
@@ -1111,6 +1317,8 @@ function buildBoatGuyModel(Engine) {
       });
       if (state.photoView === 'rig3d') {
         state.yaw = 0.58; state.pitch = 0.16; state.dist = 2.85; state.target = [0, 0.95, 0];
+      } else if (state.photoView === 'mesh3d') {
+        framePhotoreal();
       }
       syncUI();
     });
@@ -1171,7 +1379,7 @@ function buildBoatGuyModel(Engine) {
   glCanvas.addEventListener('pointerup', () => dragging = false);
   glCanvas.addEventListener('wheel', e => {
     e.preventDefault();
-    state.dist = Math.max(1.1, Math.min(5.5, state.dist + e.deltaY * 0.0025));
+    state.dist = Math.max(0.65, Math.min(5.5, state.dist + e.deltaY * 0.0025));
   }, { passive: false });
 
   const camPresets = {
@@ -1185,7 +1393,10 @@ function buildBoatGuyModel(Engine) {
     const p = camPresets[key];
     state.yaw = p.yaw; state.pitch = p.pitch; state.dist = p.dist; state.target = [...p.target];
   }
-  glCanvas.addEventListener('dblclick', () => setCamera('threeQuarter'));
+  glCanvas.addEventListener('dblclick', () => {
+    if (state.mainMode === 'photo' && state.photoView === 'mesh3d') framePhotoreal();
+    else setCamera('threeQuarter');
+  });
   document.querySelectorAll('.cam-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       state.spin = false;
@@ -1232,6 +1443,12 @@ function buildBoatGuyModel(Engine) {
   });
   document.getElementById('btnSTL').addEventListener('click', () => {
     triggerDownload(MeshEngine.exportSTL(parts, getActiveGroups(), 75.0), 'boat-guy-and-dog.stl', 'model/stl');
+  });
+  document.getElementById('btnDlPhotoGLB').addEventListener('click', () => {
+    const path = photorealPaths[state.photoSubj];
+    const fname = path.split('/').pop();
+    const a = document.createElement('a');
+    a.href = path; a.download = fname; a.click();
   });
   document.getElementById('btnDlSheet').addEventListener('click', () => {
     const s = loadedSheets[state.photoSubj];
@@ -1299,7 +1516,7 @@ function buildBoatGuyModel(Engine) {
     const dt = Math.min(0.05, (now - lastTime) / 1000);
     lastTime = now;
 
-    if (state.mainMode === 'photo' && state.photoView !== 'rig3d') {
+    if (state.mainMode === 'photo' && state.photoView !== 'rig3d' && state.photoView !== 'mesh3d') {
       if (state.photoView === 'scrub' && state.autoTurn && !pDragging) {
         scrubTimer += dt;
         if (scrubTimer > 0.85) { scrubTimer = 0; setScrubAngle(state.scrubAngle + 1); }
@@ -1310,7 +1527,7 @@ function buildBoatGuyModel(Engine) {
     }
 
     if (state.spin && !dragging) state.yaw += dt * 0.42;
-    if (state.mainMode === 'photo' && state.photoView === 'rig3d' && !dragging) state.yaw += dt * 0.32;
+    if (state.mainMode === 'photo' && (state.photoView === 'rig3d' || state.photoView === 'mesh3d') && !dragging) state.yaw += dt * 0.32;
     if (state.animate) animTime += dt;
 
     const cp = Math.cos(state.pitch), sp = Math.sin(state.pitch);
@@ -1322,6 +1539,33 @@ function buildBoatGuyModel(Engine) {
     const proj = mat4Perspective(0.68, glCanvas.width / glCanvas.height, 0.05, 30.0);
     const view = mat4LookAt(eye, state.target, [0, 1, 0]);
     const vp = mat4Mul(proj, view);
+
+    if (state.mainMode === 'photo' && state.photoView === 'mesh3d') {
+      gl.clearColor(0.09, 0.12, 0.18, 1);
+      gl.enable(gl.DEPTH_TEST);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+      // Subtle floor reference grid
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.useProgram(progPlane);
+      gl.uniformMatrix4fv(pLoc.VP, false, vp);
+      gl.uniform1i(pLoc.IsFloor, 1);
+      gl.bindVertexArray(vaoFloor);
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+      gl.disable(gl.BLEND);
+
+      const entry = photorealCache[state.photoSubj];
+      if (entry && entry.status === 'ready') {
+        gl.useProgram(progVCol);
+        gl.uniformMatrix4fv(vLoc.VP, false, vp);
+        gl.uniform3fv(vLoc.Cam, eye);
+        gl.bindVertexArray(entry.mesh.vao);
+        gl.drawElements(gl.TRIANGLES, entry.mesh.count, entry.mesh.idxType, 0);
+      }
+      requestAnimationFrame(render);
+      return;
+    }
 
     if (state.mainMode === 'photo' && state.photoView === 'rig3d') {
       gl.clearColor(0.11, 0.13, 0.18, 1);
@@ -1390,10 +1634,10 @@ function buildBoatGuyModel(Engine) {
       const wag = Math.sin(t * 11.5) * 0.42;
       mats.dogTail = mat4Mul(rootM, mat4PivotEuler(0.326, 0.17, -0.065, Math.abs(wag)*0.18, wag, wag*0.35));
       const dTilt = Math.sin(t * 2.1) * 0.18, dNod = Math.sin(t * 4.2) * 0.05, dBounce = Math.abs(Math.sin(t * 4.2)) * 0.012;
-      mats.dogHead = mat4Mul(rootM, mat4PivotEuler(0.278, 0.43, 0.12, dNod, Math.sin(t*1.05)*0.12, dTilt, dBounce));
+      mats.dogHead = mat4Mul(rootM, mat4PivotEuler(0.278, 0.37, 0.12, dNod, Math.sin(t*1.05)*0.12, dTilt, dBounce));
       const earSway = Math.sin(t * 2.1 - 0.45) * 0.14;
-      mats.dogEarL = mat4Mul(mats.dogHead, mat4PivotEuler(0.38, 0.55, 0.13, 0, 0, earSway + 0.04));
-      mats.dogEarR = mat4Mul(mats.dogHead, mat4PivotEuler(0.18, 0.55, 0.17, 0, 0, earSway - 0.04));
+      mats.dogEarL = mat4Mul(mats.dogHead, mat4PivotEuler(0.38, 0.49, 0.13, 0, 0, earSway + 0.04));
+      mats.dogEarR = mat4Mul(mats.dogHead, mat4PivotEuler(0.18, 0.49, 0.17, 0, 0, earSway - 0.04));
       const pant = Math.sin(t * 9.0) * 0.006;
       mats.dogTongue = mat4Mul(mats.dogHead, mat4Translate(0, pant, Math.abs(pant) * 0.4));
     }

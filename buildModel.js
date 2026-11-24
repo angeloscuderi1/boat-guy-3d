@@ -102,52 +102,53 @@
         x: sx, y: 0.175, z: sz - 0.015, ry: rotY, segU: 18, segV: 10,
       });
     }
-    addShoe('R', gx - 0.11, 0.0, -0.16);
-    addShoe('L', gx + 0.11, 0.01, 0.14);
+    addShoe('R', gx - 0.094, 0.0, -0.14);
+    addShoe('L', gx + 0.094, 0.01, 0.14);
 
-    // --- Khaki Chino Pants ---
+    // --- Khaki Chino Pants (tailored athletic fit, no bulky hip pouch!) ---
     function addLeg(side, lx, lz) {
       mb.addLathe(`leg_${side}`, 'body', M.khaki, [
-        [0.056, 0.165, 0.058],
-        [0.062, 0.20, 0.064],
-        [0.068, 0.38, 0.070],
-        [0.075, 0.54, 0.078],
-        [0.088, 0.72, 0.090],
-        [0.092, 0.82, 0.092],
+        [0.052, 0.165, 0.054],
+        [0.057, 0.22, 0.059],
+        [0.063, 0.40, 0.065],
+        [0.069, 0.56, 0.072],
+        [0.078, 0.74, 0.082],
+        [0.082, 0.85, 0.085],
       ], { x: lx, z: lz, segs: 24 });
     }
-    addLeg('R', gx - 0.105, -0.01);
-    addLeg('L', gx + 0.105, 0.00);
+    addLeg('R', gx - 0.090, -0.008);
+    addLeg('L', gx + 0.090, 0.000);
 
-    // Pelvis / hips
-    mb.addEllipsoid('hips', 'body', M.khaki, {
-      radX: 0.195, radY: 0.115, radZ: 0.125,
-      x: gx, y: 0.81, z: -0.005, segU: 26, segV: 16,
-    });
-
-    // Leather belt + silver buckle
-    mb.addLathe('belt', 'body', M.belt, [
-      [0.190, 0.845, 0.122],
-      [0.192, 0.885, 0.124],
+    // Slim tailored pelvis/waist (flush with thighs & belt — zero groin pouch or belly bulge!)
+    mb.addLathe('hips', 'body', M.khaki, [
+      [0.142, 0.76, 0.086],
+      [0.164, 0.80, 0.096],
+      [0.168, 0.86, 0.098],
     ], { x: gx, z: -0.005, segs: 28 });
-    mb.addRoundedBox('belt_buckle', 'body', M.silver, 0.045, 0.036, 0.016, {
-      x: gx, y: 0.865, z: 0.122, segU: 10, segV: 8,
+
+    // Leather belt + silver buckle (slim flush waist)
+    mb.addLathe('belt', 'body', M.belt, [
+      [0.168, 0.848, 0.098],
+      [0.169, 0.884, 0.099],
+    ], { x: gx, z: -0.005, segs: 28 });
+    mb.addRoundedBox('belt_buckle', 'body', M.silver, 0.042, 0.034, 0.014, {
+      x: gx, y: 0.866, z: 0.098, segU: 10, segV: 8,
     });
 
-    // --- Navy Quarter-Zip Fleece Torso ---
+    // --- Navy Quarter-Zip Fleece Torso (clean athletic V-taper) ---
     mb.addLathe('torso_fleece', 'body', M.fleece, [
-      [0.196, 0.85, 0.128],
-      [0.202, 0.90, 0.132],
-      [0.194, 1.02, 0.128],
-      [0.215, 1.18, 0.138],
-      [0.232, 1.31, 0.138],
-      [0.210, 1.39, 0.122],
-      [0.115, 1.43, 0.098],
+      [0.172, 0.855, 0.103],
+      [0.174, 0.91, 0.104],
+      [0.178, 1.03, 0.108],
+      [0.202, 1.19, 0.120],
+      [0.220, 1.31, 0.124],
+      [0.198, 1.39, 0.112],
+      [0.110, 1.43, 0.094],
     ], {
       x: gx, z: -0.005, segs: 32,
       deform: (x, y, z) => {
         // Slight athletic chest projection & natural back curve
-        const chest = (y > 1.10 && y < 1.35 && z > 0) ? 0.018 * Math.sin(((y - 1.10) / 0.25) * Math.PI) : 0;
+        const chest = (y > 1.12 && y < 1.34 && z > 0) ? 0.014 * Math.sin(((y - 1.12) / 0.22) * Math.PI) : 0;
         return [x, y, z + chest];
       },
     });
@@ -172,12 +173,12 @@
       x: gx, y: 1.405, z: 0.058, segU: 18, segV: 12,
     });
 
-    // Quarter-zip seam & silver pull tab
-    mb.addRoundedBox('zipper_seam', 'body', M.fleeceDark, 0.012, 0.17, 0.012, {
-      x: gx, y: 1.285, z: 0.145, rx: 0.08, segU: 8, segV: 8,
+    // Quarter-zip seam & silver pull tab (flush with slimmer athletic chest)
+    mb.addRoundedBox('zipper_seam', 'body', M.fleeceDark, 0.011, 0.17, 0.010, {
+      x: gx, y: 1.285, z: 0.126, rx: 0.08, segU: 8, segV: 8,
     });
-    mb.addRoundedBox('zipper_pull', 'body', M.silver, 0.014, 0.026, 0.010, {
-      x: gx, y: 1.345, z: 0.152, rx: -0.15, segU: 8, segV: 8,
+    mb.addRoundedBox('zipper_pull', 'body', M.silver, 0.013, 0.024, 0.009, {
+      x: gx, y: 1.345, z: 0.132, rx: -0.15, segU: 8, segV: 8,
     });
 
     // --- Shoulders, Arms, Watch & Hands ---
@@ -559,12 +560,12 @@
 
     // =========================================================
     // 4. BLENHEIM CAVALIER KING CHARLES SPANIEL (group: 'dog')
-    //    Sitting proudly beside him at dx = +0.29, dz = +0.07
+    //    Sleek seated silhouette with natural head, soft draped ears,
+    //    fitted sage-green harness, and curled feathered tail
     // =========================================================
     const dx = 0.29, dy = 0.09, dz = 0.07;
-    const dRotY = -0.26; // slightly angled inward/front
+    const dRotY = -0.26;
 
-    // Helper to place parts in dog's local frame (rotated by dRotY around (dx, dy, dz))
     function dogTf(lx, ly, lz, extra = {}) {
       const c = Math.cos(dRotY), s = Math.sin(dRotY);
       return {
@@ -581,114 +582,128 @@
       return [dx + lx * c + lz * s, dy + ly, dz - lx * s + lz * c];
     }
 
-    // Seated body (fluffy white chest & torso)
-    mb.addEllipsoid('dog_torso_white', 'dog', M.dogWhite, dogTf(0, 0.21, -0.02, {
-      radX: 0.125, radY: 0.175, radZ: 0.145, rx: 0.22, segU: 26, segV: 18,
-    }));
-    // Fluffy white chest ruff
-    mb.addEllipsoid('dog_chest_fluff', 'dog', M.dogWhite, dogTf(0, 0.25, 0.08, {
-      radX: 0.095, radY: 0.115, radZ: 0.085, segU: 20, segV: 14,
-    }));
-    // Blenheim chestnut-brown saddle patches on back & sides
-    mb.addEllipsoid('dog_back_patch', 'dog', M.dogBrown, dogTf(0, 0.22, -0.065, {
-      radX: 0.124, radY: 0.145, radZ: 0.115, rx: 0.25, segU: 22, segV: 16,
-    }));
-    mb.addEllipsoid('dog_rump_patch', 'dog', M.dogBrown, dogTf(-0.04, 0.12, -0.10, {
-      radX: 0.105, radY: 0.095, radZ: 0.105, segU: 18, segV: 12,
+    // Natural tapered seated dog torso (compact Cavalier proportions, zero stiff tube neck)
+    mb.addLathe('dog_torso_white', 'dog', M.dogWhite, [
+      [0.088, 0.02, 0.102],
+      [0.102, 0.08, 0.118],
+      [0.098, 0.16, 0.114],
+      [0.090, 0.24, 0.102],
+      [0.072, 0.30, 0.080],
+      [0.058, 0.34, 0.064],
+    ], dogTf(0, 0.0, -0.02, {
+      segs: 28,
+      deform: (x, y, z) => {
+        const leanZ = y * 0.22;
+        return [x, y, z + leanZ];
+      },
     }));
 
-    // Sage/Olive-Green Padded Harness (matches Photos 3 & 4!)
-    mb.addTorus('dog_harness_chest', 'dog', M.harness, 0.112, 0.022, dogTf(0, 0.28, 0.02, {
-      rx: 0.42, segU: 24, segV: 10,
+    // Flush Blenheim chestnut-brown saddle coat wrapping smoothly across back & flanks
+    mb.addLathe('dog_back_patch', 'dog', M.dogBrown, [
+      [0.092, 0.06, 0.115],
+      [0.101, 0.15, 0.117],
+      [0.093, 0.23, 0.104],
+      [0.076, 0.29, 0.082],
+    ], dogTf(0, 0.0, -0.024, {
+      segs: 26,
+      deform: (x, y, z) => {
+        const leanZ = y * 0.22;
+        if (z > 0.015) return [x * 0.76, y, z * 0.52 + leanZ];
+        return [x * 1.02, y, z * 1.02 + leanZ];
+      },
     }));
-    mb.addTorus('dog_harness_belly', 'dog', M.harness, 0.124, 0.020, dogTf(0, 0.20, -0.02, {
-      rx: 0.22, segU: 24, segV: 10,
+
+    // Fitted Sage/Olive-Green Padded Harness (snug against chest & belly fur!)
+    mb.addTorus('dog_harness_chest', 'dog', M.harness, 0.095, 0.011, dogTf(0, 0.245, 0.034, {
+      rx: 0.36, sx: 0.96, sz: 1.06, segU: 28, segV: 10,
     }));
-    mb.addRoundedBox('dog_harness_backpad', 'dog', M.harness, 0.095, 0.11, 0.032, dogTf(0, 0.26, -0.12, {
-      rx: 0.30, segU: 12, segV: 10,
+    mb.addTorus('dog_harness_belly', 'dog', M.harness, 0.100, 0.011, dogTf(0, 0.165, 0.016, {
+      rx: 0.18, sx: 0.98, sz: 1.12, segU: 28, segV: 10,
     }));
-    mb.addTorus('dog_harness_ring', 'dog', M.silver, 0.016, 0.004, dogTf(0, 0.29, -0.145, {
+    mb.addRoundedBox('dog_harness_backpad', 'dog', M.harness, 0.074, 0.092, 0.022, dogTf(0, 0.215, -0.076, {
+      rx: 0.28, segU: 12, segV: 10,
+    }));
+    mb.addTorus('dog_harness_ring', 'dog', M.silver, 0.013, 0.0035, dogTf(0, 0.245, -0.092, {
       rx: Math.PI / 2, segU: 14, segV: 8,
     }));
 
-    // Seated hind haunches & paws
+    // Seated hind haunches + tucked back paws + clean straight front legs
     for (const side of [-1, 1]) {
-      mb.addEllipsoid(`dog_haunch_${side}`, 'dog', M.dogWhite, dogTf(side * 0.105, 0.10, -0.03, {
-        radX: 0.068, radY: 0.095, radZ: 0.095, segU: 16, segV: 12,
+      mb.addEllipsoid(`dog_haunch_${side}`, 'dog', M.dogWhite, dogTf(side * 0.082, 0.082, -0.025, {
+        radX: 0.052, radY: 0.078, radZ: 0.082, rx: 0.15, segU: 18, segV: 12,
       }));
-      mb.addEllipsoid(`dog_back_paw_${side}`, 'dog', M.dogWhite, dogTf(side * 0.105, 0.032, 0.06, {
-        radX: 0.042, radY: 0.032, radZ: 0.062, segU: 14, segV: 10,
+      mb.addEllipsoid(`dog_back_paw_${side}`, 'dog', M.dogWhite, dogTf(side * 0.086, 0.024, 0.048, {
+        radX: 0.032, radY: 0.024, radZ: 0.048, segU: 14, segV: 10,
       }));
-      // Front legs + fluffy feathered paws
       mb.addTube(`dog_front_leg_${side}`, 'dog', M.dogWhite, [
-        dogPt(side * 0.065, 0.24, 0.075),
-        dogPt(side * 0.062, 0.14, 0.105),
-        dogPt(side * 0.060, 0.04, 0.118),
-      ], [0.038, 0.033, 0.032], { segs: 14 });
-      mb.addEllipsoid(`dog_front_paw_${side}`, 'dog', M.dogWhite, dogTf(side * 0.060, 0.028, 0.142, {
-        radX: 0.036, radY: 0.026, radZ: 0.048, segU: 14, segV: 10,
+        dogPt(side * 0.054, 0.21, 0.062),
+        dogPt(side * 0.050, 0.12, 0.084),
+        dogPt(side * 0.048, 0.03, 0.094),
+      ], [0.031, 0.027, 0.025], { segs: 14 });
+      mb.addEllipsoid(`dog_front_paw_${side}`, 'dog', M.dogWhite, dogTf(side * 0.048, 0.022, 0.116, {
+        radX: 0.029, radY: 0.020, radZ: 0.040, segU: 14, segV: 10,
       }));
     }
 
-    // Fluffy feathered white tail curving gracefully behind
+    // Graceful fluffy feathered white tail curving naturally behind & around hip
     mb.addTube('dog_tail', 'dog', M.dogWhite, [
-      dogPt(0.0, 0.08, -0.14),
-      dogPt(0.05, 0.07, -0.22),
-      dogPt(0.12, 0.11, -0.27),
-      dogPt(0.17, 0.16, -0.25),
-    ], [0.028, 0.042, 0.046, 0.024], { segs: 14 });
+      dogPt(0.0, 0.065, -0.115),
+      dogPt(0.045, 0.055, -0.175),
+      dogPt(0.110, 0.072, -0.195),
+      dogPt(0.155, 0.105, -0.165),
+      dogPt(0.168, 0.130, -0.125),
+    ], [0.022, 0.032, 0.036, 0.030, 0.016], { segs: 14 });
 
-    // Cavalier King Charles Spaniel Head (tilted slightly up & cute!)
-    const dhY = 0.445, dhZ = 0.085;
-    // White domed skull with iconic white center blaze
+    // Adorable Cavalier King Charles Spaniel Head (snuggled naturally onto shoulders)
+    const dhY = 0.378, dhZ = 0.062;
     mb.addEllipsoid('dog_head_white', 'dog', M.dogWhite, dogTf(0, dhY, dhZ, {
-      radX: 0.112, radY: 0.108, radZ: 0.115, rx: -0.15, segU: 26, segV: 18,
+      radX: 0.096, radY: 0.094, radZ: 0.102, rx: -0.10, segU: 28, segV: 20,
     }));
-    // Blenheim chestnut-brown patches framing both eyes & crown (leaving white center blaze!)
+
+    // Flush Blenheim chestnut patches over eyes & crown (leaving crisp white center blaze!)
     for (const side of [-1, 1]) {
-      mb.addEllipsoid(`dog_face_patch_${side}`, 'dog', M.dogBrown, dogTf(side * 0.064, dhY + 0.020, dhZ + 0.015, {
-        radX: 0.062, radY: 0.082, radZ: 0.095, rx: -0.12, ry: side * 0.15, segU: 18, segV: 14,
+      mb.addEllipsoid(`dog_face_patch_${side}`, 'dog', M.dogBrown, dogTf(side * 0.046, dhY + 0.014, dhZ + 0.008, {
+        radX: 0.054, radY: 0.072, radZ: 0.084, rx: -0.08, ry: side * 0.10, segU: 20, segV: 14,
       }));
     }
 
-    // Short cute Cavalier muzzle
-    mb.addEllipsoid('dog_muzzle', 'dog', M.dogWhite, dogTf(0, dhY - 0.032, dhZ + 0.105, {
-      radX: 0.056, radY: 0.044, radZ: 0.058, segU: 18, segV: 12,
+    // Soft rounded white Cavalier muzzle + cute shiny dark nose + tiny happy tongue
+    mb.addEllipsoid('dog_muzzle', 'dog', M.dogWhite, dogTf(0, dhY - 0.026, dhZ + 0.092, {
+      radX: 0.046, radY: 0.036, radZ: 0.048, segU: 18, segV: 12,
     }));
-    // Glossy dark button nose
-    mb.addEllipsoid('dog_nose', 'dog', M.dogNose, dogTf(0, dhY - 0.015, dhZ + 0.158, {
-      radX: 0.024, radY: 0.018, radZ: 0.018, segU: 14, segV: 10,
+    mb.addEllipsoid('dog_nose', 'dog', M.dogNose, dogTf(0, dhY - 0.012, dhZ + 0.136, {
+      radX: 0.020, radY: 0.015, radZ: 0.015, segU: 14, segV: 10,
     }));
-    // Happy little pink tongue
-    mb.addEllipsoid('dog_tongue', 'dog', M.dogTongue, dogTf(0, dhY - 0.064, dhZ + 0.135, {
-      radX: 0.018, radY: 0.016, radZ: 0.022, rx: 0.4, segU: 12, segV: 8,
+    mb.addEllipsoid('dog_tongue', 'dog', M.dogTongue, dogTf(0, dhY - 0.052, dhZ + 0.114, {
+      radX: 0.014, radY: 0.012, radZ: 0.018, rx: 0.4, segU: 12, segV: 8,
     }));
 
     // Big soulful glossy Cavalier eyes with bright catchlights
     for (const side of [-1, 1]) {
-      mb.addEllipsoid(`dog_eye_${side}`, 'dog', M.dogNose, dogTf(side * 0.048, dhY + 0.010, dhZ + 0.096, {
-        radX: 0.022, radY: 0.023, radZ: 0.018, segU: 14, segV: 12,
+      mb.addEllipsoid(`dog_eye_${side}`, 'dog', M.dogNose, dogTf(side * 0.042, dhY + 0.008, dhZ + 0.086, {
+        radX: 0.019, radY: 0.020, radZ: 0.015, segU: 14, segV: 12,
       }));
-      mb.addEllipsoid(`dog_eye_glint_${side}`, 'dog', M.teeth, dogTf(side * 0.048 + 0.007, dhY + 0.018, dhZ + 0.111, {
-        radX: 0.006, radY: 0.006, radZ: 0.006, segU: 8, segV: 6,
+      mb.addEllipsoid(`dog_eye_glint_${side}`, 'dog', M.teeth, dogTf(side * 0.042 + 0.006, dhY + 0.015, dhZ + 0.099, {
+        radX: 0.005, radY: 0.005, radZ: 0.005, segU: 8, segV: 6,
       }));
     }
 
-    // Signature Long Fluffy Wavy Chestnut Feathered Ears (multi-strand for lush volume!)
+    // Soft, sleek, naturally draped wavy chestnut Cavalier ears (hug close to cheeks, tapered tips!)
     for (const side of [-1, 1]) {
       mb.addTube(`dog_ear_main_${side}`, 'dog', M.dogEar, [
-        dogPt(side * 0.095, dhY + 0.045, dhZ - 0.005),
-        dogPt(side * 0.138, dhY - 0.015, dhZ + 0.005),
-        dogPt(side * 0.148, dhY - 0.115, dhZ + 0.012),
-        dogPt(side * 0.136, dhY - 0.195, dhZ + 0.002),
-      ], [0.036, 0.048, 0.052, 0.036], { segs: 16, ovalX: 0.65, ovalY: 1.25 });
+        dogPt(side * 0.076, dhY + 0.038, dhZ - 0.006),
+        dogPt(side * 0.104, dhY - 0.005, dhZ + 0.004),
+        dogPt(side * 0.112, dhY - 0.068, dhZ + 0.010),
+        dogPt(side * 0.106, dhY - 0.125, dhZ + 0.004),
+        dogPt(side * 0.095, dhY - 0.160, dhZ - 0.004),
+      ], [0.024, 0.032, 0.035, 0.030, 0.016], { segs: 16, ovalX: 0.50, ovalY: 1.05 });
 
       mb.addTube(`dog_ear_curl_${side}`, 'dog', M.dogBrown, [
-        dogPt(side * 0.092, dhY + 0.032, dhZ - 0.035),
-        dogPt(side * 0.135, dhY - 0.040, dhZ - 0.038),
-        dogPt(side * 0.142, dhY - 0.135, dhZ - 0.032),
-        dogPt(side * 0.125, dhY - 0.205, dhZ - 0.028),
-      ], [0.030, 0.042, 0.045, 0.030], { segs: 14, ovalX: 0.65, ovalY: 1.15 });
+        dogPt(side * 0.074, dhY + 0.028, dhZ - 0.032),
+        dogPt(side * 0.102, dhY - 0.022, dhZ - 0.032),
+        dogPt(side * 0.108, dhY - 0.082, dhZ - 0.026),
+        dogPt(side * 0.098, dhY - 0.140, dhZ - 0.022),
+      ], [0.020, 0.028, 0.030, 0.018], { segs: 14, ovalX: 0.50, ovalY: 1.0 });
     }
 
     return mb.parts;
